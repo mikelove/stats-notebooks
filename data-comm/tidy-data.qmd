@@ -1,0 +1,214 @@
+---
+title: "Tidy Data"
+author: "Michael Love"
+date: "July 2025"
+license: "CC-BY"
+format:
+  live-html:
+    toc: true
+    code-fold: false
+    code-tools: true
+    highlight-style: github
+    code-line-numbers: false
+webr:
+  packages:
+    - dplyr
+    - tidyr
+params:
+  skip_answers: true
+---
+
+{{< include ./_extensions/r-wasm/live/_knitr.qmd >}}
+{{< include ./_extensions/r-wasm/live/_gradethis.qmd >}}
+
+## Introduction
+
+*Tidy data* is a standard way of organizing data values within a dataset (Wickham 2014). A dataset is tidy when:
+
+1. Each variable forms a column.
+2. Each observation forms a row.
+3. Each type of observational unit forms a table.
+
+Most real-world data arrives in an untidy form. The *tidyr* package provides tools to reshape data into tidy format, after which the *dplyr* package provides a consistent grammar for transformation and summarization.
+
+In this notebook we will work with toy datasets to practice identifying tidy vs. untidy structure, and use `pivot_longer()`, `pivot_wider()`, and core *dplyr* verbs to tidy and wrangle data.
+
+## What does untidy data look like?
+
+A common form of untidy data is a "wide" table where values of one variable are spread across column names. Consider a table of gene expression counts where each column is a sample:
+
+```{webr}
+library(tidyr)
+library(dplyr)
+
+counts_wide <- tibble(
+  gene    = c("GAPDH", "IL6", "TNF"),
+  naive   = c(1200, 30, 15),
+  IFNg    = c(1180, 420, 310),
+  SL1344  = c(1210, 85, 490)
+)
+counts_wide
+```
+
+Here `naive`, `IFNg`, and `SL1344` are values of a `condition` variable, not variables themselves. To make this tidy we need `pivot_longer()`.
+
+## `pivot_longer()`
+
+`pivot_longer()` takes multiple columns and collapses them into two: one for the former column names and one for the values.
+
+```{webr}
+counts_long <- counts_wide |>
+  pivot_longer(
+    cols      = -gene,       # every column except 'gene'
+    names_to  = "condition",
+    values_to = "count"
+  )
+counts_long
+```
+
+::: {.callout-note collapse="false"}
+## Question
+
+How many rows does `counts_long` have compared to `counts_wide`? Why?
+:::
+
+## `pivot_wider()`
+
+The inverse operation is `pivot_wider()`, which spreads a key-value pair back into separate columns. This is sometimes useful for display or for feeding data into a matrix-based function.
+
+```{webr}
+counts_long |>
+  pivot_wider(
+    names_from  = condition,
+    values_from = count
+  )
+```
+
+## Exercise: pivot a table
+
+::: {.callout-note collapse="false"}
+## Exercise
+
+The table `relig_income` (built into *tidyr*) has income categories as column names. Pivot it to a tidy long format with columns `religion`, `income`, and `count`.
+:::
+
+```{webr}
+#| exercise: pivot_ex
+#| setup: true
+library(tidyr)
+library(dplyr)
+```
+
+```{webr}
+#| caption: Pivot relig_income to long format
+#| exercise: pivot_ex
+relig_income |>
+  pivot_longer(
+    cols      = ______,
+    names_to  = ______,
+    values_to = ______
+  )
+```
+
+::: {.solution exercise="pivot_ex"}
+
+#### Solution
+
+`-religion` selects every column except `religion`, which is the identifier.
+
+```{webr}
+#| exercise: pivot_ex
+#| solution: true
+relig_income |>
+  pivot_longer(
+    cols      = -religion,
+    names_to  = "income",
+    values_to = "count"
+  )
+```
+
+:::
+
+```{webr}
+#| exercise: pivot_ex
+#| check: true
+gradethis::grade_this_code()
+```
+
+## Core dplyr verbs
+
+With tidy data in hand, *dplyr* provides five key verbs:
+
+| Verb | Purpose |
+|---|---|
+| `filter()` | Keep rows matching a condition |
+| `select()` | Keep (or drop) columns |
+| `mutate()` | Add or modify columns |
+| `summarize()` | Reduce rows to a summary |
+| `arrange()` | Sort rows |
+
+These are usually combined with `group_by()` to apply operations within groups.
+
+```{webr}
+counts_long |>
+  filter(condition != "naive") |>
+  group_by(condition) |>
+  summarize(total = sum(count), mean_count = mean(count))
+```
+
+## Exercise: filter and summarize
+
+::: {.callout-note collapse="false"}
+## Exercise
+
+Using `counts_long`, keep only rows where `count > 100`, then compute the mean count per `condition`.
+:::
+
+```{webr}
+#| exercise: filter_ex
+#| setup: true
+library(tidyr)
+library(dplyr)
+
+counts_long <- tibble(
+  gene      = rep(c("GAPDH", "IL6", "TNF"), each = 3),
+  condition = rep(c("naive", "IFNg", "SL1344"), times = 3),
+  count     = c(1200, 1180, 1210, 30, 420, 85, 15, 310, 490)
+)
+```
+
+```{webr}
+#| caption: Filter and summarize counts_long
+#| exercise: filter_ex
+counts_long |>
+  filter(______) |>
+  group_by(______) |>
+  summarize(mean_count = ______)
+```
+
+::: {.solution exercise="filter_ex"}
+
+#### Solution
+
+```{webr}
+#| exercise: filter_ex
+#| solution: true
+counts_long |>
+  filter(count > 100) |>
+  group_by(condition) |>
+  summarize(mean_count = mean(count))
+```
+
+:::
+
+```{webr}
+#| exercise: filter_ex
+#| check: true
+gradethis::grade_this_code()
+```
+
+## Session info
+
+```{webr}
+sessionInfo()
+```
