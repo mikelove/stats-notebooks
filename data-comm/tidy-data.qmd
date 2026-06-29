@@ -4,23 +4,16 @@ author: "Michael Love"
 date: "July 2025"
 license: "CC-BY"
 format:
-  live-html:
+  html:
     toc: true
     code-fold: false
     code-tools: true
     highlight-style: github
     code-line-numbers: false
-webr:
-  packages:
-    - dplyr
-    - tidyr
-    - palmerpenguins
+    embed-resources: true
 params:
   skip_answers: true
 ---
-
-{{< include ./_extensions/r-wasm/live/_knitr.qmd >}}
-{{< include ./_extensions/r-wasm/live/_gradethis.qmd >}}
 
 ## Introduction
 
@@ -38,15 +31,15 @@ In this notebook we will work with toy datasets to practice identifying tidy vs.
 
 A common form of untidy data is a "wide" table where values of one variable are spread across column names. Consider a table of gene expression counts where each column is a sample:
 
-```{webr}
+```{r}
 library(tidyr)
 library(dplyr)
 
 counts_wide <- tibble(
   gene    = c("GAPDH", "IL6", "TNF"),
-  naive   = c(1200, 30, 15),
-  IFNg    = c(1180, 420, 310),
-  SL1344  = c(1210, 85, 490)
+  naive   = c(450, 120, 280),
+  IFNg    = c(430, 230, 210),
+  SL1344  = c(460, 180, 340)
 )
 counts_wide
 ```
@@ -57,7 +50,7 @@ Here `naive`, `IFNg`, and `SL1344` are values of a `condition` variable, not var
 
 `pivot_longer()` takes multiple columns and collapses them into two: one for the former column names and one for the values.
 
-```{webr}
+```{r}
 counts_long <- counts_wide |>
   pivot_longer(
     cols      = -gene,       # every column except 'gene'
@@ -77,7 +70,7 @@ How many rows does `counts_long` have compared to `counts_wide`? Why?
 
 The inverse operation is `pivot_wider()`, which spreads a key-value pair back into separate columns. This is sometimes useful for display or for feeding data into a matrix-based function.
 
-```{webr}
+```{r}
 counts_long |>
   pivot_wider(
     names_from  = condition,
@@ -93,7 +86,7 @@ counts_long |>
 The `penguins` dataset (from *palmerpenguins*) has four body measurement columns: `bill_length_mm`, `bill_depth_mm`, `flipper_length_mm`, and `body_mass_g`. Pivot those four columns to long format with columns `species`, `measurement`, and `value`, keeping only `species` as the identifier.
 :::
 
-```{webr}
+```{r}
 #| exercise: pivot_ex
 #| setup: true
 library(tidyr)
@@ -101,7 +94,7 @@ library(dplyr)
 library(palmerpenguins)
 ```
 
-```{webr}
+```{r}
 #| caption: Pivot penguins measurements to long format
 #| exercise: pivot_ex
 penguins |>
@@ -119,7 +112,7 @@ penguins |>
 
 `-species` selects every column except `species`, which is the identifier.
 
-```{webr}
+```{r}
 #| exercise: pivot_ex
 #| solution: true
 penguins |>
@@ -133,7 +126,7 @@ penguins |>
 
 :::
 
-```{webr}
+```{r}
 #| exercise: pivot_ex
 #| check: true
 gradethis::grade_this_code()
@@ -153,7 +146,7 @@ With tidy data in hand, *dplyr* provides five key verbs:
 
 These are usually combined with `group_by()` to apply operations within groups.
 
-```{webr}
+```{r}
 counts_long |>
   filter(condition != "naive") |>
   group_by(condition) |>
@@ -168,20 +161,17 @@ counts_long |>
 Using `counts_long`, keep only rows where `count > 100`, then compute the mean count per `condition`.
 :::
 
-```{webr}
+```{r}
 #| exercise: filter_ex
 #| setup: true
 library(tidyr)
 library(dplyr)
 
-counts_long <- tibble(
-  gene      = rep(c("GAPDH", "IL6", "TNF"), each = 3),
-  condition = rep(c("naive", "IFNg", "SL1344"), times = 3),
-  count     = c(1200, 1180, 1210, 30, 420, 85, 15, 310, 490)
-)
+counts_long <- counts_wide |>
+  pivot_longer(cols = -gene, names_to = "condition", values_to = "count")
 ```
 
-```{webr}
+```{r}
 #| caption: Filter and summarize counts_long
 #| exercise: filter_ex
 counts_long |>
@@ -194,7 +184,7 @@ counts_long |>
 
 #### Solution
 
-```{webr}
+```{r}
 #| exercise: filter_ex
 #| solution: true
 counts_long |>
@@ -205,7 +195,7 @@ counts_long |>
 
 :::
 
-```{webr}
+```{r}
 #| exercise: filter_ex
 #| check: true
 gradethis::grade_this_code()
@@ -215,15 +205,7 @@ gradethis::grade_this_code()
 
 One payoff of tidy data is that a single column can drive an aesthetic like color. With `counts_long` already in long format, we can map the `condition` column directly to point color.
 
-```{webr}
-library(dplyr)
-
-counts_long <- tibble::tibble(
-  gene      = rep(c("GAPDH", "IL6", "TNF"), each = 3),
-  condition = rep(c("naive", "IFNg", "SL1344"), times = 3),
-  count     = c(1200, 1180, 1210, 30, 420, 85, 15, 310, 490)
-)
-
+```{r}
 gene_levels <- c("GAPDH", "IL6", "TNF")
 conditions  <- c("naive", "IFNg", "SL1344")
 colors      <- c("dodgerblue", "firebrick", "forestgreen")
@@ -240,7 +222,10 @@ plot(
   main = "counts by gene and condition"
 )
 axis(1, at = 1:3, labels = gene_levels)
-legend("topright", legend = conditions, col = colors, pch = 16, bty = "n")
+legend(
+  "topright", legend = conditions, col = colors, 
+  pch = 16,  y.intersp = 1.5, inset = 0.05
+  )
 ```
 
 The key line is `col = colors[counts_long$condition]`: because `condition` is a character vector of condition names, and `colors` is a named vector, this indexes `colors` by name to produce a color for every row.
@@ -248,6 +233,6 @@ The key line is `col = colors[counts_long$condition]`: because `condition` is a 
 
 ## Session info
 
-```{webr}
+```{r}
 sessionInfo()
 ```

@@ -1,3 +1,5 @@
 /data-comm/_extensions/
 /data-comm/*_files/
 /data-comm/*.html
+/data-comm/tidy-data-exercise.qmd
+.DS_Store
