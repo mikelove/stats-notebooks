@@ -97,6 +97,7 @@ library(palmerpenguins)
 ```{r}
 #| caption: Pivot penguins measurements to long format
 #| exercise: pivot_ex
+#| eval: false
 penguins |>
   select(species, bill_length_mm, bill_depth_mm, flipper_length_mm, body_mass_g) |>
   pivot_longer(
@@ -129,6 +130,7 @@ penguins |>
 ```{r}
 #| exercise: pivot_ex
 #| check: true
+#| eval: false
 gradethis::grade_this_code()
 ```
 
@@ -174,6 +176,7 @@ counts_long <- counts_wide |>
 ```{r}
 #| caption: Filter and summarize counts_long
 #| exercise: filter_ex
+#| eval: false
 counts_long |>
   filter(______) |>
   group_by(______) |>
@@ -198,6 +201,7 @@ counts_long |>
 ```{r}
 #| exercise: filter_ex
 #| check: true
+#| eval: false
 gradethis::grade_this_code()
 ```
 

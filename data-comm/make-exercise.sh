@@ -29,6 +29,7 @@ BEGIN { yaml_count = 0 }
   print $0; next
 }
 /^```\{r\}$/                  { print "```{webr}"; next }
+/^#\| eval: false$/           { next }
 
 { print }
 ' "$SRC" > "$DST"

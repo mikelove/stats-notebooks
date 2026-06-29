@@ -17,12 +17,19 @@ Originally prepared as part of UBDS^3 in July 2025.
 
 Only [Quarto](https://quarto.org/docs/get-started/) is required — R runs in the browser via WebAssembly ([quarto-live](https://r-wasm.github.io/quarto-live/)).
 
-Install the extension once inside the directory, then render or preview:
+Install the extension once inside the directory:
 
 ```bash
 cd data-comm && quarto add r-wasm/quarto-live
-quarto preview data-comm/tidy-data.qmd
 ```
+
+`tidy-data.qmd` is the editable source file (standard `{r}` chunks, works in Positron/RStudio). To preview the interactive version, run:
+
+```bash
+cd data-comm && ./preview.sh
+```
+
+This generates `tidy-data-exercise.qmd` (with `{webr}` chunks) and opens it in the browser. The exercise file is gitignored.
 
 ### Static notebooks (`randomness/`, `exploratory/`)
 

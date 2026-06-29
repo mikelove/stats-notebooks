@@ -32,12 +32,13 @@ quarto preview randomness/randomness.qmd
 cd data-comm && quarto add r-wasm/quarto-live
 ```
 
-Then render or preview normally:
+`tidy-data.qmd` is the source file — it uses standard `{r}` chunks and renders as a plain HTML notebook. It is editable in Positron/RStudio. To preview the interactive (webR) version:
 
 ```bash
-quarto render data-comm/tidy-data.qmd
-quarto preview data-comm/tidy-data.qmd
+cd data-comm && ./preview.sh
 ```
+
+`preview.sh` calls `make-exercise.sh`, which generates `tidy-data-exercise.qmd` by swapping `{r}` → `{webr}`, restoring the `live-html` format and `webr: packages:` YAML, adding the gradethis include lines, and removing `#| eval: false` from student exercise chunks. Then it runs `quarto preview` on the generated file. `tidy-data-exercise.qmd` is gitignored.
 
 ## Notebook structure
 
@@ -51,18 +52,15 @@ Shared YAML conventions:
 
 ### Interactive notebook (`data-comm/tidy-data.qmd`)
 
-Uses the [`quarto-live`](https://r-wasm.github.io/quarto-live/) extension, which runs R in the browser via WebAssembly (webR). Key differences from static notebooks:
+The source file uses standard `{r}` chunks and `format: html` so it works in any editor. `make-exercise.sh` transforms it into `tidy-data-exercise.qmd` for the browser using [`quarto-live`](https://r-wasm.github.io/quarto-live/). The generated file differs from the source in these ways:
 
-- Format is `live-html` (not `html`); `embed-resources` is omitted
-- Packages for the browser runtime are declared under `webr: packages:` in the YAML
-- Interactive code blocks use ` ```{webr} ` instead of ` ```{r} `
-- Two include lines after the YAML header wire up gradethis grading:
-  ```
-  {{< include ./_extensions/r-wasm/live/_knitr.qmd >}}
-  {{< include ./_extensions/r-wasm/live/_gradethis.qmd >}}
-  ```
+- `{r}` → `{webr}` on all chunk fences
+- `html:` → `live-html:` in the YAML format key; `embed-resources: true` is dropped
+- `webr: packages:` block added to YAML (dplyr, tidyr, palmerpenguins)
+- Two gradethis include lines added after the YAML front matter
+- `#| eval: false` removed from student exercise chunks (those chunks have unparseable `______` placeholders)
 
-**gradethis exercise pattern** — four blocks per exercise:
+**gradethis exercise pattern** — four blocks per exercise (in the generated file):
 
 1. Setup block: ` ```{webr} ` with `#| exercise: name` + `#| setup: true`
 2. Student block: ` ```{webr} ` with `#| exercise: name` (contains `______` placeholders)
