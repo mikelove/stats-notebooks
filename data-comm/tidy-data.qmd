@@ -36,15 +36,15 @@ library(tidyr)
 library(dplyr)
 
 counts_wide <- tibble(
-  gene    = c("GAPDH", "IL6", "TNF"),
-  naive   = c(450, 120, 280),
-  IFNg    = c(430, 230, 210),
-  SL1344  = c(460, 180, 340)
+  gene    = c("GAPDH", "IL6", "IRF1"),
+  control   = c(520, 30, 50),
+  IFNg    = c(560, 90, 290),
+  Salmonella  = c(500, 320, 310)
 )
 counts_wide
 ```
 
-Here `naive`, `IFNg`, and `SL1344` are values of a `condition` variable, not variables themselves. To make this tidy we need `pivot_longer()`.
+Here `control`, `IFNg`, and `Salmonella` are values of a `condition` variable, not variables themselves. To make this tidy we need `pivot_longer()`.
 
 ## `pivot_longer()`
 
@@ -150,7 +150,7 @@ These are usually combined with `group_by()` to apply operations within groups.
 
 ```{r}
 counts_long |>
-  filter(condition != "naive") |>
+  filter(condition != "control") |>
   group_by(condition) |>
   summarize(total = sum(count), mean_count = mean(count))
 ```
@@ -205,14 +205,14 @@ counts_long |>
 gradethis::grade_this_code()
 ```
 
-## Plotting tidy data with base R
+## Plotting tidy data with `plot()`
 
 One payoff of tidy data is that a single column can drive an aesthetic like color. With `counts_long` already in long format, we can map the `condition` column directly to point color.
 
 ```{r}
-gene_levels <- c("GAPDH", "IL6", "TNF")
-conditions  <- c("naive", "IFNg", "SL1344")
-colors      <- c("dodgerblue", "firebrick", "forestgreen")
+gene_levels <- counts_wide$gene
+conditions <- names(counts_wide)[-1]
+colors <- palette.colors(7)[c(7,4,3)]
 names(colors) <- conditions
 
 plot(
@@ -220,6 +220,7 @@ plot(
   counts_long$count,
   col  = colors[counts_long$condition],
   pch  = 16,
+  cex = 1.5,
   xaxt = "n",
   xlab = "gene",
   ylab = "count",
@@ -228,12 +229,41 @@ plot(
 axis(1, at = 1:3, labels = gene_levels)
 legend(
   "topright", legend = conditions, col = colors, 
-  pch = 16,  y.intersp = 1.5, inset = 0.05
+  pch = 16, inset = 0.02
   )
 ```
 
 The key line is `col = colors[counts_long$condition]`: because `condition` is a character vector of condition names, and `colors` is a named vector, this indexes `colors` by name to produce a color for every row.
 
+
+## Plotting tidy data with ggplot2
+
+The same plot requires far less code with *ggplot2*, and many things that take manual effort in base R — like the legend — appear automatically as sensible defaults.
+
+```{r}
+library(ggplot2)
+
+ggplot(
+  data = counts_long, 
+  mapping = aes(x = gene, y = count, color = condition)
+) +
+  geom_point(size = 3)
+```
+
+The `color = condition` mapping is all it takes: ggplot2 assigns colors and adds a *guide* (legend) automatically. In base R we had to build a named color vector and call `legend()` by hand.
+
+*ggplot2* is built around a layered grammar of graphics. Each `+` adds a new layer or modification — a geometry (`geom_point`), a scale, a theme, a facet — so you can start with a minimal plot and layer complexity on top without rewriting anything. For instance, to facet by condition we can simply add `facet_wrap(~ condition)`:
+
+```{r}
+ggplot(
+  data = counts_long,
+  mapping = aes(x = gene, y = count, color = condition)
+) +
+  geom_point(size = 3) +
+  facet_wrap(~ condition)
+```
+
+Later we will show how to add *statistical summary layers* — such as group means with `stat_summary()` or regression slopes with `geom_smooth()` — by dropping in one more line.
 
 ## Session info
 
