@@ -2,4 +2,8 @@
 /data-comm/*_files/
 /data-comm/*.html
 /data-comm/tidy-data-exercise.qmd
+/randomness/_extensions/
+/randomness/*_files/
+/randomness/*.html
+/randomness/randomness-exercise.qmd
 .DS_Store

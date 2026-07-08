@@ -12,6 +12,7 @@ format:
     code-line-numbers: false
     embed-resources: true
 params:
+  skip_execution: false
   skip_answers: true
 ---
 

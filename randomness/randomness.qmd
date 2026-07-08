@@ -113,8 +113,53 @@ data.frame(n = n_values, est_means)
 ::: {.callout-note collapse="false"}
 ## Question
 
-What do you notice about these estimates? Are they close to the true mean of `r true_mean`?
+What do you notice about these estimates? Are they close to the true mean?
 :::
+
+::: {.callout-note collapse="false"}
+## Exercise
+
+Use `sapply` to estimate the sample mean for each sample size in `n_values`, drawing `n` random values from a Normal distribution with mean `true_mean` and standard deviation `true_sd`.
+:::
+
+::: {.callout-tip collapse="true"}
+## Hint
+
+The first argument to `sapply` is the vector to iterate over. Each element is passed as `n` to the anonymous function; use it inside `rnorm()` and wrap the result with `mean()`.
+:::
+
+```{r}
+#| exercise: sapply_ex
+#| eval: false
+set.seed(5)
+est_means <- sapply(______, \(n) {
+  ______( rnorm(n, mean = ______, sd = ______) )
+})
+data.frame(n = n_values, est_means)
+```
+
+::: {.solution exercise="sapply_ex"}
+
+#### Solution
+
+```{r}
+#| exercise: sapply_ex
+#| solution: true
+set.seed(5)
+est_means <- sapply(n_values, \(n) {
+  mean( rnorm(n, mean = true_mean, sd = true_sd) )
+})
+data.frame(n = n_values, est_means)
+```
+
+:::
+
+```{r}
+#| exercise: sapply_ex
+#| check: true
+#| eval: false
+gradethis::grade_this_code()
+```
 
 ## Estimating the mean
 
