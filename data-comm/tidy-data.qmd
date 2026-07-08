@@ -1,7 +1,7 @@
 ---
 title: "Tidy Data"
 author: "Michael Love"
-date: "July 2025"
+date: "July 2026"
 license: "CC-BY"
 format:
   html:
@@ -93,13 +93,11 @@ counts_long |>
   )
 ```
 
-## Exercise: pivot a table
+## Exercise: pivot the penguins
 
-::: {.callout-note collapse="false"}
-## Exercise
+The `penguins` dataset (from *palmerpenguins*) has four body measurement columns: `bill_length_mm`, `bill_depth_mm`, `flipper_length_mm`, and `body_mass_g`. This is already in a tidy format, as these are each measurements, and the rows are observtions (penguins). For more details, see the [palmerpenguins](https://allisonhorst.github.io/palmerpenguins/) package homepage, which notes:
 
-The `penguins` dataset (from *palmerpenguins*) has four body measurement columns: `bill_length_mm`, `bill_depth_mm`, `flipper_length_mm`, and `body_mass_g`. Pivot those four columns to long format with columns `species`, `measurement`, and `value`, keeping only `species` as the identifier.
-:::
+> Data were collected and made available by Dr. Kristen Gorman and the Palmer Station, Antarctica LTER, a member of the Long Term Ecological Research Network. ... [the palmerpenguins package contains] data for 344 penguins. There are 3 different species of penguins in this dataset, collected from 3 islands in the Palmer Archipelago, Antarctica.
 
 ```{r}
 suppressPackageStartupMessages({
@@ -108,6 +106,12 @@ suppressPackageStartupMessages({
 
 penguins
 ```
+
+::: {.callout-note collapse="false"}
+## Exercise
+
+Even though the penguins dataset is already in a tidy format, we can still make the table into a longer format. Pivot those four columns to a long format with columns `species`, `measurement`, and `value`, keeping only `species` as the identifier.
+:::
 
 We will return to the `penguins` dataset in a later exercise on modeling missing data.
 

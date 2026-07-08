@@ -86,7 +86,7 @@ Let's start by reading in the counts matrix. Here I use the basic `read.delim()`
 library(tibble)
 library(here)
 # this file has no column name for first column (these are e.g. row names)
-counts <- read.delim(here("labs/exploratory/counts.txt.gz"))
+counts <- read.delim(here("exploratory/counts.txt.gz"))
 counts <- counts |> 
   rownames_to_column("peak") |>
   as_tibble()
@@ -107,14 +107,14 @@ test_dat |> as.data.frame()
 
 ```{r}
 library(readr)
-peaks <- read_delim(here("labs/exploratory/peaks.txt.gz"))
+peaks <- read_delim(here("exploratory/peaks.txt.gz"))
 peaks
 ```
 
 And the sample information, in a file referring to "column data", because the columns of the matrix are samples:
 
 ```{r}
-coldata <- read_delim(here("labs/exploratory/coldata.txt.gz"))
+coldata <- read_delim(here("exploratory/coldata.txt.gz"))
 coldata
 ```
 
@@ -185,7 +185,7 @@ Note that we can also select by pattern, see `?select` for more details:
 coldata |> select(ends_with("_date"))
 ```
 
-## Cumulative densities, histograms, ggplot
+## Cumulative densities, histograms, ggplot2
 
 Above we saw small text-based histograms of numeric data, which allow us to quickly look at the distribution of values. Here I explore that further, first introducing the `ecdf()` function. An *empirical cumulative density function* shows similar information to a histogram, as if the bars of the histogram were stacking on top of each other from left to right. But instead of breaking the range of the data on the x-axis into bins, each data point is represented. The value on the y-axis goes from 0 on the left edge of the data (minimum) to 1 on the right edge of the data (maximum). Reading the x-value where the y-value equals 0.5 gives the median.
 
@@ -680,8 +680,8 @@ Which tile has the highest summarized contribution to PC1? Which peaks are contr
 
 ```{r}
 which.max(tab$sum_pc1)
-tab |> slice(which.max(sum_pc1))
-max_tile <- tiles |> slice(which.max(tab$sum_pc1))
+tab |> dplyr::slice(which.max(sum_pc1))
+max_tile <- tiles |> dplyr::slice(which.max(tab$sum_pc1))
 p |>
   filter_by_overlaps(max_tile)
 ```
