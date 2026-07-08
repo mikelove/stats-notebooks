@@ -29,7 +29,11 @@ In this notebook we will work with toy datasets to practice identifying tidy vs.
 
 ## What does untidy data look like?
 
-A common form of untidy data is a "wide" table where values of one variable are spread across column names. Consider a table of gene expression counts where each column is a sample:
+A common form of untidy data is a "wide" table where values of one variable are spread across column names. Consider a table of gene expression counts where each column is a sample. The three genes are:
+
+- **GAPDH** — glycolytic enzyme expressed in nearly all cells; widely used as a housekeeping reference gene because its expression is constitutive and stable.
+- **IL6** — pro-inflammatory cytokine that activates acute-phase responses; strongly induced by bacterial infection through NF-κB signaling.
+- **IRF1** — transcription factor and direct target of the IFNg–JAK–STAT1 axis; a canonical marker of the interferon response.
 
 ```{r}
 library(tidyr)
@@ -264,6 +268,23 @@ ggplot(
 ```
 
 Later we will show how to add *statistical summary layers* — such as group means with `stat_summary()` or regression slopes with `geom_smooth()` — by dropping in one more line.
+
+## Tips for making data findable, accessible, interoperable, and re-usable
+
+Above we considered the choice of tidy data vs other formats of storing or presenting data. Here we describe some other tips that help make data more easy to use. 
+
+A well-known set of guiding principles of working with and sharing data is called 
+[FAIR](https://www.go-fair.org/fair-principles/), an acronym representing the words in the section header here.
+
+Some tips for making data both tidy and FAIR are as follows:
+
+  - Missing values are data. While typically represented with `NA` in R or `NaN` in python, one can model missingness itself, converting to a binary "shadow" matrix. See [Tidy Missing Data](https://naniar.njtierney.com/articles/naniar.html#tidy-missing-data-the-shadow-matrix) in the _naniar_ package vignette. Avoid `-1` for missing or flagged as this can lead to downstream confusion.
+  - Dates, units, and categories should be explicit and consistent (no "10mg" mixed with "10"). Units can be provided in the column name (`dosage_mg`). It's a good idea to provide an accompanying data dictionary defining units and categories. Use standard formats for dates such as `ISO 8601: YYYY-MM-DD`. For working in R, see the [lubridate](https://lubridate.tidyverse.org/) package.
+  - One thing per cell. Avoid embedding multiple values (e.g., "120/80" for blood pressure). Discourage use of highlighting, color, or style in place of data; instead use an additional column taking boolean values, e.g. `flagged` or `highlight`.
+  - Column names should always be machine-readable: no spaces, no special characters, unambiguous. Replace dashes with underscore. When not sure what to name a column, try to find a previously published dataset and re-use their naming scheme rather than invent a new one.
+  - Raw data is sacred: never overwrite it. Keep a clean separation between raw and processed data. Raw data can be excluded from version control, but should be described including provenance in an accompanying `README.md`. Where did this data come from, how was it collected? Ideally provide a script for downloading from stable, remote sources such as Zenodo.
+  - Finally, a stranger, or a future "you", should be able to re-run everything. Comments, links, software versions (see "Session info" below), can be of great value for future data and analysis re-use. If using randomness as part of analysis (e.g. bootstrapping, sub-sampling, etc.) always set a random seed. For simulations, keep track of the seeds used to generate the multiple simulated datasets.
+
 
 ## Session info
 
