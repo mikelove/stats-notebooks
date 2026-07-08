@@ -50,6 +50,10 @@ Shared YAML conventions:
 - `params: skip_execution / skip_answers` — not yet fully wired up
 - `code-tools: true` — toolbar for toggling code visibility
 
+### Variable definitions in `tidy-data.qmd`
+
+Never redefine a variable (e.g. `counts_wide`, `counts_long`) that is already defined earlier in the script. quarto-live uses a shared compute environment across chunks, so libraries loaded and variables defined in earlier chunks are available inside exercise chunks. Setup chunks (`#| setup: true`) do not need to reload libraries or redefine variables.
+
 ### Interactive notebook (`data-comm/tidy-data.qmd`)
 
 The source file uses standard `{r}` chunks and `format: html` so it works in any editor. `make-exercise.sh` transforms it into `tidy-data-exercise.qmd` for the browser using [`quarto-live`](https://r-wasm.github.io/quarto-live/). The generated file differs from the source in these ways:

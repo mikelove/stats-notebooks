@@ -91,11 +91,8 @@ The `penguins` dataset (from *palmerpenguins*) has four body measurement columns
 :::
 
 ```{r}
-#| exercise: pivot_ex
-#| setup: true
-library(tidyr)
-library(dplyr)
 library(palmerpenguins)
+penguins
 ```
 
 ```{r}
@@ -166,16 +163,6 @@ counts_long |>
 
 Using `counts_long`, keep only rows where `count > 100`, then compute the mean count per `condition`.
 :::
-
-```{r}
-#| exercise: filter_ex
-#| setup: true
-library(tidyr)
-library(dplyr)
-
-counts_long <- counts_wide |>
-  pivot_longer(cols = -gene, names_to = "condition", values_to = "count")
-```
 
 ```{r}
 #| caption: Filter and summarize counts_long
@@ -286,8 +273,97 @@ Some tips for making data both tidy and FAIR are as follows:
   - Finally, a stranger, or a future "you", should be able to re-run everything. Comments, links, software versions (see "Session info" below), can be of great value for future data and analysis re-use. If using randomness as part of analysis (e.g. bootstrapping, sub-sampling, etc.) always set a random seed. For simulations, keep track of the seeds used to generate the multiple simulated datasets.
 
 
+## Preserving raw data without overwriting
+
+A common operation in genomics is to center (and potentially scale) each gene's expression values by subtracting the gene's mean across conditions (perhaps after taking the logarithm). One tempting approach works directly on a matrix and reassigns the result:
+
+```{r}
+counts_mat <- as.matrix(counts_wide[,-1])
+rownames(counts_mat) <- counts_wide[,1,drop=TRUE]
+counts_mat <- log10(counts_mat + 1)
+10^(rowMeans(counts_mat)) # geometric mean
+counts_mat <- counts_mat - rowMeans(counts_mat)
+counts_mat
+```
+
+This works numerically, but the reassignment destroys information. The values in `counts_mat` are no longer counts — they are deviations of original counts — yet the variable name gives no indication of what has been done. More importantly, the original information about the scale of the counts per gene is gone: we can no longer recover that GAPDH had ~530 counts, while IL6 had ~100 and IRF1 had ~160, in terms of the geometric mean.
+
+The tidy alternative is to leave `counts_long` untouched and add new columns with `mutate()`, keeping the original `count` alongside intermediate values. A reader (or a future you) can immediately see both the absolute level and the deviation, and the operation is self-documenting in the column names.
+
+::: {.callout-note collapse="false"}
+## Exercise
+
+Starting from `counts_long`, add two new columns without overwriting anything:
+
+- `log_count`: log10 of the count plus one
+- `ctr_log10_count`: `log_count` centered by subtracting the per-gene mean
+:::
+
+```{r}
+#| caption: Add log_count and ctr_log10_count to counts_long
+#| exercise: mutate_ex
+#| eval: false
+counts_long |>
+  ______(log_count = ______) |>
+  ______(______) |>
+  ______(ctr_log10_count = ______)
+```
+
+::: {.solution exercise="mutate_ex"}
+
+#### Solution
+
+```{r}
+#| exercise: mutate_ex
+#| solution: true
+counts_long |>
+  mutate(log_count = log10(count + 1)) |>
+  group_by(gene) |>
+  mutate(ctr_log10_count = log_count - mean(log_count))
+```
+
+:::
+
+```{r}
+#| exercise: mutate_ex
+#| check: true
+#| eval: false
+gradethis::grade_this_code()
+```
+
+## Exercise: modeling missingness
+
+The FAIR tips above note that missing values are data and that missingness itself can be modeled. Here we construct a dataset where missingness is *not at random* — larger penguins are more likely to have their body mass unrecorded — then explore whether we can detect that pattern from the data alone.
+
+We start from the complete cases of the `penguins` dataset, then simulate a realistic missing-not-at-random (MNAR) mechanism: penguins heavier than 5500 g have their body mass value suppressed 75% of the time. A companion indicator column records whether each value is missing.
+
+```{r}
+library(palmerpenguins)
+
+set.seed(42)
+penguins_complete <- penguins |> drop_na()
+
+penguins_obs <- penguins_complete |>
+  mutate(
+    body_mass_missing = body_mass_g > 5500 & runif(n()) < 0.75,
+    body_mass_obs     = if_else(body_mass_missing, NA_real_, body_mass_g)
+  )
+
+penguins_obs |>
+  select(species, body_mass_g, body_mass_obs, body_mass_missing) |>
+  filter(body_mass_g > 5000)
+```
+
 ## Session info
+
+`sessionInfo()` prints the R version, operating system, locale, and the name and version of every package loaded in the current session. Including it at the end of a script or notebook is a lightweight form of provenance: if a result changes or a bug appears months later, the session info is often the first place to look — it tells you exactly what software produced the output. It is also essential for reproducibility reports and as supplementary information in publications.
+
+A popular alternative is `sessionInfo()` from the *sessioninfo* package, which formats packages in a cleaner table and records the *source* of each package — CRAN, Bioconductor, or a GitHub repository with its commit SHA — which matters when packages installed from GitHub are not on a numbered release. *devtools* depends on *sessioninfo* and re-exports the same function as `devtools::session_info()`, so if devtools is already loaded you can call it either way.
 
 ```{r}
 sessionInfo()
+```
+
+```{r}
+devtools::session_info()
 ```
