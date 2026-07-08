@@ -40,13 +40,15 @@ library(tidyr)
 library(dplyr)
 
 counts_wide <- tibble(
-  gene    = c("GAPDH", "IL6", "IRF1"),
-  control   = c(520, 30, 50),
-  IFNg    = c(560, 90, 290),
-  Salmonella  = c(500, 320, 310)
+  gene = c("GAPDH", "IL6", "IRF1"),
+  control = c(520, 30, 50),
+  IFNg = c(560, 90, 290),
+  Salmonella = c(500, 320, 310)
 )
 counts_wide
 ```
+
+A `tibble` is the tidyverse's class for tabular data. It behaves like base R's `data.frame` but with a few practical improvements: it prints only the first ten rows by default, always shows column types, and never silently converts strings to factors. Throughout this notebook we use `tibble` and `data.frame` interchangeably, but `tibble` is what the tidyverse functions return.
 
 Here `control`, `IFNg`, and `Salmonella` are values of a `condition` variable, not variables themselves. To make this tidy we need `pivot_longer()`.
 
@@ -57,8 +59,8 @@ Here `control`, `IFNg`, and `Salmonella` are values of a `condition` variable, n
 ```{r}
 counts_long <- counts_wide |>
   pivot_longer(
-    cols      = -gene,       # every column except 'gene'
-    names_to  = "condition",
+    cols = -gene,       # every column except 'gene'
+    names_to = "condition",
     values_to = "count"
   )
 counts_long
@@ -77,7 +79,7 @@ The inverse operation is `pivot_wider()`, which spreads a key-value pair back in
 ```{r}
 counts_long |>
   pivot_wider(
-    names_from  = condition,
+    names_from = condition,
     values_from = count
   )
 ```
@@ -120,8 +122,8 @@ penguins |>
 penguins |>
   select(species, bill_length_mm, bill_depth_mm, flipper_length_mm, body_mass_g) |>
   pivot_longer(
-    cols      = -species,
-    names_to  = "measurement",
+    cols = -species,
+    names_to = "measurement",
     values_to = "value"
   )
 ```
@@ -209,8 +211,8 @@ names(colors) <- conditions
 plot(
   as.numeric(factor(counts_long$gene, levels = gene_levels)),
   counts_long$count,
-  col  = colors[counts_long$condition],
-  pch  = 16,
+  col = colors[counts_long$condition],
+  pch = 16,
   cex = 1.5,
   xaxt = "n",
   xlab = "gene",
@@ -243,14 +245,18 @@ ggplot(
 
 The `color = condition` mapping is all it takes: ggplot2 assigns colors and adds a *guide* (legend) automatically. In base R we had to build a named color vector and call `legend()` by hand.
 
-*ggplot2* is built around a layered grammar of graphics. Each `+` adds a new layer or modification — a geometry (`geom_point`), a scale, a theme, a facet — so you can start with a minimal plot and layer complexity on top without rewriting anything. For instance, to facet by condition we can simply add `facet_wrap(~ condition)`:
+*ggplot2* is built around a layered grammar of graphics. Each `+` adds a new layer or modification — a geometry (`geom_point`), a scale, a theme, a facet — so you can start with a minimal plot and layer complexity on top without rewriting anything. For instance, to add lines we add `geom_line` (with group defined in the mapping). To facet by condition we can simply add `facet_wrap(~ condition)`:
 
 ```{r}
 ggplot(
   data = counts_long,
-  mapping = aes(x = gene, y = count, color = condition)
+  mapping = aes(
+    x = gene, y = count, 
+    color = condition, group = condition
+  )
 ) +
   geom_point(size = 3) +
+  geom_line() +
   facet_wrap(~ condition)
 ```
 
@@ -273,7 +279,7 @@ Some tips for making data both tidy and FAIR are as follows:
   - Finally, a stranger, or a future "you", should be able to re-run everything. Comments, links, software versions (see "Session info" below), can be of great value for future data and analysis re-use. If using randomness as part of analysis (e.g. bootstrapping, sub-sampling, etc.) always set a random seed. For simulations, keep track of the seeds used to generate the multiple simulated datasets.
 
 
-## Preserving raw data without overwriting
+## Exercise: preserving raw data
 
 A common operation in genomics is to center (and potentially scale) each gene's expression values by subtracting the gene's mean across conditions (perhaps after taking the logarithm). One tempting approach works directly on a matrix and reassigns the result:
 
@@ -335,7 +341,7 @@ gradethis::grade_this_code()
 
 The FAIR tips above note that missing values are data and that missingness itself can be modeled. Here we construct a dataset where missingness is *not at random* — larger penguins are more likely to have their body mass unrecorded — then explore whether we can detect that pattern from the data alone.
 
-We start from the complete cases of the `penguins` dataset, then simulate a realistic missing-not-at-random (MNAR) mechanism: penguins heavier than 5500 g have their body mass value suppressed 75% of the time. A companion indicator column records whether each value is missing.
+We start from the complete cases of the `penguins` dataset, then simulate a realistic missing-not-at-random (MNAR) mechanism: penguins heavier than 5250 g have their body mass value suppressed 75% of the time. A companion indicator column records whether each value is missing.
 
 ```{r}
 library(palmerpenguins)
@@ -345,14 +351,139 @@ penguins_complete <- penguins |> drop_na()
 
 penguins_obs <- penguins_complete |>
   mutate(
-    body_mass_missing = body_mass_g > 5500 & runif(n()) < 0.75,
-    body_mass_obs     = if_else(body_mass_missing, NA_real_, body_mass_g)
+    body_mass_missing = body_mass_g > 5250 & runif(n()) < 0.75,
+    body_mass_obs = if_else(body_mass_missing, NA, body_mass_g)
   )
+```
 
+Note the difference in the body mass for the missing penguins (as expected). To show this we introduce `slice_sample()` which allows for random sampling within groups. 
+
+```{r}
 penguins_obs |>
   select(species, body_mass_g, body_mass_obs, body_mass_missing) |>
-  filter(body_mass_g > 5000)
+  group_by(body_mass_missing) |>
+  slice_sample(n=5)
 ```
+
+Sometimes the values that are missing are correlated with other variables that we *do* observe. Flipper length is highly correlated with body mass in penguins. And our mechanism of missingness in this case (by construction) has to do with extreme values of body mass, so even when `body_mass_obs` is `NA` we still have `flipper_length_mm` which may tell us about the expectation of missingness. Let's check on this correlation using our full dataset. This is analagous to knowing such a correlation between variables exists from literature.
+
+```{r}
+penguins_obs |>
+  ggplot(aes(flipper_length_mm, body_mass_g)) + 
+  geom_point()
+```
+
+Again, this correlation implies we can model the binary missingness indicator as a function of flipper length using logistic regression. Logistic regression is implemented in R via `glm()` with `family = binomial`. Technically the model is a Bernoulli regression — a special case of the binomial where the number of trials is 1 — and the response must be in {0, 1} (or equivalently `TRUE`/`FALSE`). Like `lm()`, it fits a linear combination of predictor variables — here to the log-odds of the response being 1 — but instead of minimizing squared residuals, it estimates coefficients by maximizing the likelihood of the observed 0/1 outcomes under the model. The fitted log-odds can be converted to a probability with `type = "response"` in `predict()`. The question we are asking: does a longer flipper predict a higher probability of the body mass being missing?
+
+::: {.callout-note collapse="false"}
+## Exercise
+
+Fit a logistic regression predicting `body_mass_missing` from `flipper_length_mm` in `penguins_obs`.
+:::
+
+::: {.callout-tip collapse="true"}
+## Hint
+
+Modeling one variable on another uses the formula syntax `y ~ x`, where `y` is the response variable and `x` is the predictor variable.
+:::
+
+```{r}
+#| exercise: glm_ex
+#| eval: false
+fit <- glm(
+  ______ ~ ______,
+  data = penguins_obs,
+  family = binomial
+)
+```
+
+::: {.solution exercise="glm_ex"}
+
+#### Solution
+
+```{r}
+#| exercise: glm_ex
+#| solution: true
+fit <- glm(
+  body_mass_missing ~ flipper_length_mm,
+  data = penguins_obs,
+  family = binomial
+)
+```
+
+:::
+
+```{r}
+#| exercise: glm_ex
+#| check: true
+#| eval: false
+gradethis::grade_this_code()
+```
+
+Examine the coefficients:
+
+```{r}
+broom::tidy(fit)
+```
+
+The coefficient on `flipper_length_mm` is positive and significant: penguins with longer flippers (i.e. heavier ones) are indeed more likely to have their body mass missing, which recovers the MNAR mechanism we built in. We can now attach the model's predicted missingness probability back to each row with `mutate()`:
+
+::: {.callout-note collapse="false"}
+## Exercise
+
+Add a column `prob_missing` to `penguins_obs` containing the predicted probability of missingness from `fit`, then assign the result to the dataset `penguins_modeled`.
+:::
+
+::: {.callout-tip collapse="true"}
+## Hint
+
+The `predict()` function generates predicted values from a fitted model. For a logistic regression, use `type = "response"` to return predicted probabilities rather than log-odds.
+:::
+
+```{r}
+#| exercise: predict_ex
+#| eval: false
+penguins_modeled <- penguins_obs |>
+  mutate(______ = ______(fit, type = ______))
+```
+
+::: {.solution exercise="predict_ex"}
+
+#### Solution
+
+```{r}
+#| exercise: predict_ex
+#| solution: true
+penguins_modeled <- penguins_obs |>
+  mutate(prob_missing = predict(fit, type = "response"))
+```
+
+:::
+
+```{r}
+#| exercise: predict_ex
+#| check: true
+#| eval: false
+gradethis::grade_this_code()
+```
+
+Plotting `prob_missing` against true body mass, with point shape indicating whether the value was actually suppressed, lets us see how well the model separates the two groups:
+
+```{r}
+ggplot(
+  data = penguins_modeled,
+  mapping = aes(x = body_mass_g, y = prob_missing, shape = body_mass_missing)
+) +
+  geom_point(size = 2) +
+  scale_shape_manual(values = c("FALSE" = 16, "TRUE" = 1)) +
+  labs(x = "body mass (g)", y = "predicted P(missing)", shape = "missing")
+```
+
+::: {.callout-note collapse="false"}
+## Question
+
+The open circles (missing values) are concentrated at high body mass, but some have a low predicted probability of missingness. Why is the prediction of missingness not simply increasing with body mass?
+:::
 
 ## Session info
 

@@ -50,6 +50,10 @@ Shared YAML conventions:
 - `params: skip_execution / skip_answers` — not yet fully wired up
 - `code-tools: true` — toolbar for toggling code visibility
 
+### R code style
+
+Do not pad `=` with extra spaces to align arguments across lines (e.g. `data    =`, `mapping =`). Use a single space on each side: `data =`, `mapping =`.
+
 ### Variable definitions in `tidy-data.qmd`
 
 Never redefine a variable (e.g. `counts_wide`, `counts_long`) that is already defined earlier in the script. quarto-live uses a shared compute environment across chunks, so libraries loaded and variables defined in earlier chunks are available inside exercise chunks. Setup chunks (`#| setup: true`) do not need to reload libraries or redefine variables.
