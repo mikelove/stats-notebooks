@@ -25,6 +25,8 @@ BEGIN { yaml_count = 0 }
   print "  packages:"
   print "    - dplyr"
   print "    - tidyr"
+  print "    - ggplot2"
+  print "    - broom"
   print "    - palmerpenguins"
   print $0; next
 }

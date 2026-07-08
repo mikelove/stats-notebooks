@@ -54,6 +54,10 @@ Shared YAML conventions:
 
 Do not pad `=` with extra spaces to align arguments across lines (e.g. `data    =`, `mapping =`). Use a single space on each side: `data =`, `mapping =`.
 
+### Prose style
+
+Do not use em dashes (—). Use commas, parentheses, semicolons, colons, or new sentences instead.
+
 ### Variable definitions in `tidy-data.qmd`
 
 Never redefine a variable (e.g. `counts_wide`, `counts_long`) that is already defined earlier in the script. quarto-live uses a shared compute environment across chunks, so libraries loaded and variables defined in earlier chunks are available inside exercise chunks. Setup chunks (`#| setup: true`) do not need to reload libraries or redefine variables.
@@ -67,6 +71,8 @@ The source file uses standard `{r}` chunks and `format: html` so it works in any
 - `webr: packages:` block added to YAML (dplyr, tidyr, palmerpenguins)
 - Two gradethis include lines added after the YAML front matter
 - `#| eval: false` removed from student exercise chunks (those chunks have unparseable `______` placeholders)
+
+**Exercise isolation** — exercises are effectively dead-ends in quarto-live: variables assigned inside an exercise chunk (including the solution) do not propagate to subsequent non-exercise chunks. There is no good workaround — `#| echo: false` bridging chunks fail because variables from earlier regular chunks are not in scope inside the hidden chunk either, and `#| code-fold: true` works in regular Quarto but not in quarto-live webR chunks. Design exercises so that nothing after them depends on their output. If downstream chunks need a variable (e.g. `fit`, `penguins_modeled`), define it in a regular non-exercise chunk instead.
 
 **gradethis exercise pattern** — four blocks per exercise (in the generated file):
 

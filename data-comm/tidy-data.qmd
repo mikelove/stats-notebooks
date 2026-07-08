@@ -23,22 +23,31 @@ params:
 2. Each observation forms a row.
 3. Each type of observational unit forms a table.
 
-Most real-world data arrives in an untidy form. The *tidyr* package provides tools to reshape data into tidy format, after which the *dplyr* package provides a consistent grammar for transformation and summarization.
+Most real-world data arrives in an untidy form. The *tidyr* package provides tools to reshape data into tidy format, after which the *dplyr* package provides a consistent grammar for transformation and summarization. We will use both of these in this notebook to demontrate principles of tidy data analysis.
+
+```{r}
+suppressPackageStartupMessages({
+
+library(tidyr)
+library(dplyr)
+
+})
+```
 
 In this notebook we will work with toy datasets to practice identifying tidy vs. untidy structure, and use `pivot_longer()`, `pivot_wider()`, and core *dplyr* verbs to tidy and wrangle data.
+
+Note: below we will use a function `tibble()` to make a type of object of the same name. A `tibble` is the tidyverse's class for tabular data. It behaves like base R's `data.frame` but with a few practical improvements: it prints only the first ten rows by default, always shows column types, and never silently converts strings to factors. Throughout this notebook we use `tibble` and `data.frame` interchangeably, but `tibble` is what the tidyverse functions return.
+
 
 ## What does untidy data look like?
 
 A common form of untidy data is a "wide" table where values of one variable are spread across column names. Consider a table of gene expression counts where each column is a sample. The three genes are:
 
-- **GAPDH** — glycolytic enzyme expressed in nearly all cells; widely used as a housekeeping reference gene because its expression is constitutive and stable.
-- **IL6** — pro-inflammatory cytokine that activates acute-phase responses; strongly induced by bacterial infection through NF-κB signaling.
-- **IRF1** — transcription factor and direct target of the IFNg–JAK–STAT1 axis; a canonical marker of the interferon response.
+- **GAPDH**: glycolytic enzyme expressed in nearly all cells; widely used as a housekeeping reference gene because its expression is constitutive and stable.
+- **IL6**: pro-inflammatory cytokine that activates acute-phase responses; strongly induced by bacterial infection through NF-κB signaling.
+- **IRF1**: transcription factor and direct target of the IFNg–JAK–STAT1 axis; a canonical marker of the interferon response.
 
 ```{r}
-library(tidyr)
-library(dplyr)
-
 counts_wide <- tibble(
   gene = c("GAPDH", "IL6", "IRF1"),
   control = c(520, 30, 50),
@@ -48,9 +57,9 @@ counts_wide <- tibble(
 counts_wide
 ```
 
-A `tibble` is the tidyverse's class for tabular data. It behaves like base R's `data.frame` but with a few practical improvements: it prints only the first ten rows by default, always shows column types, and never silently converts strings to factors. Throughout this notebook we use `tibble` and `data.frame` interchangeably, but `tibble` is what the tidyverse functions return.
-
 Here `control`, `IFNg`, and `Salmonella` are values of a `condition` variable, not variables themselves. To make this tidy we need `pivot_longer()`.
+
+There is nothing inherently _wrong_ with the above presentation, and in some contexts we may prefer the data as a matrix (for example for perfoming matrix algebra).  The point here is to note that different operations are easier to compute on one representation or the other.
 
 ## `pivot_longer()`
 
@@ -59,7 +68,7 @@ Here `control`, `IFNg`, and `Salmonella` are values of a `condition` variable, n
 ```{r}
 counts_long <- counts_wide |>
   pivot_longer(
-    cols = -gene,       # every column except 'gene'
+    cols = -gene, # every column except 'gene'
     names_to = "condition",
     values_to = "count"
   )
@@ -93,9 +102,20 @@ The `penguins` dataset (from *palmerpenguins*) has four body measurement columns
 :::
 
 ```{r}
-library(palmerpenguins)
+suppressPackageStartupMessages({
+  library(palmerpenguins)
+})
+
 penguins
 ```
+
+We will return to the `penguins` dataset in a later exercise on modeling missing data.
+
+::: {.callout-tip collapse="true"}
+## Hint
+
+`cols` takes an unquoted column selector (like `-species`) because that column already exists and R can look it up by name. `names_to` and `values_to` take quoted strings because they are *new* column names you are inventing; they don't exist in the data yet, so there is nothing for R to look up.
+:::
 
 ```{r}
 #| caption: Pivot penguins measurements to long format
@@ -104,8 +124,8 @@ penguins
 penguins |>
   select(species, bill_length_mm, bill_depth_mm, flipper_length_mm, body_mass_g) |>
   pivot_longer(
-    cols      = ______,
-    names_to  = ______,
+    cols = ______,
+    names_to = ______,
     values_to = ______
   )
 ```
@@ -148,6 +168,7 @@ With tidy data in hand, *dplyr* provides five key verbs:
 | `mutate()` | Add or modify columns |
 | `summarize()` | Reduce rows to a summary |
 | `arrange()` | Sort rows |
+| `slice()` | Select rows by position (e.g. `slice_sample()` for random rows) |
 
 These are usually combined with `group_by()` to apply operations within groups.
 
@@ -222,7 +243,7 @@ plot(
 axis(1, at = 1:3, labels = gene_levels)
 legend(
   "topright", legend = conditions, col = colors, 
-  pch = 16, inset = 0.02
+  pch = 16, y.intersp = 1.5, inset = 0.02
   )
 ```
 
@@ -231,7 +252,7 @@ The key line is `col = colors[counts_long$condition]`: because `condition` is a 
 
 ## Plotting tidy data with ggplot2
 
-The same plot requires far less code with *ggplot2*, and many things that take manual effort in base R — like the legend — appear automatically as sensible defaults.
+The same plot requires far less code with *ggplot2*, and many things that take manual effort in base R (like the legend) appear automatically as sensible defaults.
 
 ```{r}
 library(ggplot2)
@@ -245,7 +266,7 @@ ggplot(
 
 The `color = condition` mapping is all it takes: ggplot2 assigns colors and adds a *guide* (legend) automatically. In base R we had to build a named color vector and call `legend()` by hand.
 
-*ggplot2* is built around a layered grammar of graphics. Each `+` adds a new layer or modification — a geometry (`geom_point`), a scale, a theme, a facet — so you can start with a minimal plot and layer complexity on top without rewriting anything. For instance, to add lines we add `geom_line` (with group defined in the mapping). To facet by condition we can simply add `facet_wrap(~ condition)`:
+*ggplot2* is built around a layered grammar of graphics. Each `+` adds a new layer or modification (a geometry like `geom_point`, a scale, a theme, a facet), so you can start with a minimal plot and layer complexity on top without rewriting anything. For instance, to add lines we add `geom_line` (with group defined in the mapping). To facet by condition we can simply add `facet_wrap(~ condition)`:
 
 ```{r}
 ggplot(
@@ -259,8 +280,6 @@ ggplot(
   geom_line() +
   facet_wrap(~ condition)
 ```
-
-Later we will show how to add *statistical summary layers* — such as group means with `stat_summary()` or regression slopes with `geom_smooth()` — by dropping in one more line.
 
 ## Tips for making data findable, accessible, interoperable, and re-usable
 
@@ -277,6 +296,7 @@ Some tips for making data both tidy and FAIR are as follows:
   - Column names should always be machine-readable: no spaces, no special characters, unambiguous. Replace dashes with underscore. When not sure what to name a column, try to find a previously published dataset and re-use their naming scheme rather than invent a new one.
   - Raw data is sacred: never overwrite it. Keep a clean separation between raw and processed data. Raw data can be excluded from version control, but should be described including provenance in an accompanying `README.md`. Where did this data come from, how was it collected? Ideally provide a script for downloading from stable, remote sources such as Zenodo.
   - Finally, a stranger, or a future "you", should be able to re-run everything. Comments, links, software versions (see "Session info" below), can be of great value for future data and analysis re-use. If using randomness as part of analysis (e.g. bootstrapping, sub-sampling, etc.) always set a random seed. For simulations, keep track of the seeds used to generate the multiple simulated datasets.
+  - Data should be findable: when depositing data in a repository (Zenodo, Figshare, GEO, etc.), always attach structured metadata describing what the dataset contains, how it was collected, and who produced it. A little effort goes a long way. Ask someone who works in your field if there are additional pieces of information they would find valuable. Where possible, use standard ontologies (e.g. the Gene Ontology, the Cell Ontology, or SNOMED CT for clinical data) to describe variables and sample attributes. Ontology terms are machine-readable identifiers that make metadata computable: other researchers and automated tools can find, filter, and integrate your data without having to interpret free-text descriptions.
 
 
 ## Exercise: preserving raw data
@@ -287,12 +307,14 @@ A common operation in genomics is to center (and potentially scale) each gene's 
 counts_mat <- as.matrix(counts_wide[,-1])
 rownames(counts_mat) <- counts_wide[,1,drop=TRUE]
 counts_mat <- log10(counts_mat + 1)
-10^(rowMeans(counts_mat)) # geometric mean
+cat("geometric mean:\n")
+10^(rowMeans(counts_mat))
 counts_mat <- counts_mat - rowMeans(counts_mat)
+cat("log-transformed and centered data:\n")
 counts_mat
 ```
 
-This works numerically, but the reassignment destroys information. The values in `counts_mat` are no longer counts — they are deviations of original counts — yet the variable name gives no indication of what has been done. More importantly, the original information about the scale of the counts per gene is gone: we can no longer recover that GAPDH had ~530 counts, while IL6 had ~100 and IRF1 had ~160, in terms of the geometric mean.
+This works numerically, but the reassignment destroys information. The values in `counts_mat` are no longer counts; they are deviations of original counts, yet the variable name gives no indication of what has been done. More importantly, the original information about the scale of the counts per gene is gone: we can no longer recover that GAPDH had ~530 counts, while IL6 had ~100 and IRF1 had ~160, in terms of the geometric mean.
 
 The tidy alternative is to leave `counts_long` untouched and add new columns with `mutate()`, keeping the original `count` alongside intermediate values. A reader (or a future you) can immediately see both the absolute level and the deviation, and the operation is self-documenting in the column names.
 
@@ -339,9 +361,9 @@ gradethis::grade_this_code()
 
 ## Exercise: modeling missingness
 
-The FAIR tips above note that missing values are data and that missingness itself can be modeled. Here we construct a dataset where missingness is *not at random* — larger penguins are more likely to have their body mass unrecorded — then explore whether we can detect that pattern from the data alone.
+The FAIR tips above note that missing values are data and that missingness itself can be modeled. Here we construct a dataset where missingness depends on a fully observed covariate, then explore whether we can recover that structure from the data.
 
-We start from the complete cases of the `penguins` dataset, then simulate a realistic missing-not-at-random (MNAR) mechanism: penguins heavier than 5250 g have their body mass value suppressed 75% of the time. A companion indicator column records whether each value is missing.
+We start from the complete cases of the `penguins` dataset and simulate a realistic mechanism: suppose penguins with flippers longer than 215 mm often cannot fit through the door to the room where the scale is located, so their body mass is unrecorded 75% of the time. Because missingness depends on `flipper_length_mm`, which is always observed, this is an example of *missing at random* (MAR) given the covariates. A companion indicator column records whether each body mass value is missing.
 
 ```{r}
 library(palmerpenguins)
@@ -351,21 +373,24 @@ penguins_complete <- penguins |> drop_na()
 
 penguins_obs <- penguins_complete |>
   mutate(
-    body_mass_missing = body_mass_g > 5250 & runif(n()) < 0.75,
+    body_mass_missing = flipper_length_mm >= 215 & runif(n()) < 0.75,
     body_mass_obs = if_else(body_mass_missing, NA, body_mass_g)
   )
+
+names(penguins_obs)
 ```
 
-Note the difference in the body mass for the missing penguins (as expected). To show this we introduce `slice_sample()` which allows for random sampling within groups. 
+Note the difference in flipper length between penguins with and without a recorded body mass. To show this we introduce `slice_sample()`, which allows for random sampling within groups.
 
 ```{r}
+set.seed(5) # to fix the random sampling
 penguins_obs |>
-  select(species, body_mass_g, body_mass_obs, body_mass_missing) |>
+  select(species, flipper_length_mm, body_mass_g, body_mass_obs, body_mass_missing) |>
   group_by(body_mass_missing) |>
-  slice_sample(n=5)
+  slice_sample(n = 5)
 ```
 
-Sometimes the values that are missing are correlated with other variables that we *do* observe. Flipper length is highly correlated with body mass in penguins. And our mechanism of missingness in this case (by construction) has to do with extreme values of body mass, so even when `body_mass_obs` is `NA` we still have `flipper_length_mm` which may tell us about the expectation of missingness. Let's check on this correlation using our full dataset. This is analagous to knowing such a correlation between variables exists from literature.
+Because missingness depends on flipper length, which we always observe, we can model it directly. Flipper length is also highly correlated with body mass, such that we will tend to not observe heavier penguins. Let's confirm the correlation using our full dataset:
 
 ```{r}
 penguins_obs |>
@@ -373,12 +398,14 @@ penguins_obs |>
   geom_point()
 ```
 
-Again, this correlation implies we can model the binary missingness indicator as a function of flipper length using logistic regression. Logistic regression is implemented in R via `glm()` with `family = binomial`. Technically the model is a Bernoulli regression — a special case of the binomial where the number of trials is 1 — and the response must be in {0, 1} (or equivalently `TRUE`/`FALSE`). Like `lm()`, it fits a linear combination of predictor variables — here to the log-odds of the response being 1 — but instead of minimizing squared residuals, it estimates coefficients by maximizing the likelihood of the observed 0/1 outcomes under the model. The fitted log-odds can be converted to a probability with `type = "response"` in `predict()`. The question we are asking: does a longer flipper predict a higher probability of the body mass being missing?
+Again, this correlation implies we can model the binary missingness indicator as a function of flipper length using logistic regression. Logistic regression is implemented in R via `glm()` with `family = binomial`, or equivalently `family = "binomial"` (quotes not needed as `binomial` is an object in base R, a special function called a _family_). Technically the model is a Bernoulli regression, a special case of the binomial where the number of trials is 1, and the response must be in {0, 1} (or equivalently `TRUE`/`FALSE`). 
+
+Like `lm()`, a logistic regression fits a linear combination of predictor variables (here, to the log-odds of the response being 1), but instead of minimizing squared residuals, it estimates coefficients by maximizing the likelihood of the observed 0/1 outcomes under the model. The fitted log-odds can be converted to a probability with `type = "response"` in `predict()`. The question we are asking: does a longer flipper predict a higher probability of the body mass being missing?
 
 ::: {.callout-note collapse="false"}
 ## Exercise
 
-Fit a logistic regression predicting `body_mass_missing` from `flipper_length_mm` in `penguins_obs`.
+Fit a logistic regression predicting `body_mass_missing` from `flipper_length_mm` in `penguins_obs`. You will then see the estimated coefficients with the `tidy()` function in the _broom_ package.
 :::
 
 ::: {.callout-tip collapse="true"}
@@ -393,8 +420,9 @@ Modeling one variable on another uses the formula syntax `y ~ x`, where `y` is t
 fit <- glm(
   ______ ~ ______,
   data = penguins_obs,
-  family = binomial
+  family = ______
 )
+broom::tidy(fit)
 ```
 
 ::: {.solution exercise="glm_ex"}
@@ -409,6 +437,7 @@ fit <- glm(
   data = penguins_obs,
   family = binomial
 )
+broom::tidy(fit)
 ```
 
 :::
@@ -420,13 +449,20 @@ fit <- glm(
 gradethis::grade_this_code()
 ```
 
-Examine the coefficients:
+The coefficient on `flipper_length_mm` is positive and significant: penguins with longer flippers are indeed more likely to have their body mass missing, which recovers the MAR mechanism we built in.
+
+In practice, missingness models are rarely this simple. A more realistic model would include multiple predictors, and the relationship between a predictor and the log-odds of missingness may not be exactly linear; semi-parametric approaches such as splines allow the shape of the relationship to be estimated from the data rather than assumed. Beyond predicting missingness, if the goal is causal estimation (understanding how one variable affects another while accounting for confounding), it becomes important to diagram the relationships among all variables in a *directed acyclic graph* (DAG). DAGs make explicit which variables are confounders, mediators, or colliders, and guide which variables should or should not be conditioned on. A comprehensive and freely available introduction to this framework is *What If* by Hernán and Robins ([miguelhernan.org/whatifbook](https://miguelhernan.org/whatifbook)).
+
+Now let's attach the model's predicted missingness probability back to each row. First we will run the fitting code from the exercise again so that the fitted model is available.
 
 ```{r}
-broom::tidy(fit)
+fit <- glm(
+  body_mass_missing ~ flipper_length_mm,
+  data = penguins_obs,
+  family = binomial
+)
+broom::glance(fit) # statistical model summaries
 ```
-
-The coefficient on `flipper_length_mm` is positive and significant: penguins with longer flippers (i.e. heavier ones) are indeed more likely to have their body mass missing, which recovers the MNAR mechanism we built in. We can now attach the model's predicted missingness probability back to each row with `mutate()`:
 
 ::: {.callout-note collapse="false"}
 ## Exercise
@@ -467,9 +503,20 @@ penguins_modeled <- penguins_obs |>
 gradethis::grade_this_code()
 ```
 
-Plotting `prob_missing` against true body mass, with point shape indicating whether the value was actually suppressed, lets us see how well the model separates the two groups:
+One application of a fitted missingness model is *inverse probability weighting* (IPW). The intuition is as follows: penguins with long flippers are under-represented in our observed body mass values, so we compensate by giving those observed penguins extra weight in any downstream analysis (here "weight" refers to the influence of a datum on the estimate, not to the weight of the penguin!).
+
+Specifically, each observed value receives a weight of 1 / (1 - prob_missing): a penguin with a 75% predicted probability of being missing, but whose value we do happen to observe, is up-weighted in the equations used to estimate parameters by a factor of 4, because it is standing in for roughly four penguins like itself.
+
+Because our mechanism is MAR (missingness depends only on flipper length, which is fully observed), this re-weighting can recover unbiased estimates of quantities computed on the full data. If the mechanism were *not at random* (MNAR), for example if very heavy penguins were missing regardless of flipper length, but due to unobserved values including the missing variable itself, our estimates of the missingness probability would not be sufficient to recover unbiased estimates.
+
+Now let's plot our new variable `prob_missing` against true body mass, with the point shape indicating whether the value was missing (empty circle) or not (filled circle). This will let us see how well the model separates the two groups. Generally this plot wouldn't be possible because the missing values would be missing!
+
+Again, we need to add `prob_missing` from the exercise, for use below.
 
 ```{r}
+penguins_modeled <- penguins_obs |>
+  mutate(prob_missing = predict(fit, type = "response"))
+
 ggplot(
   data = penguins_modeled,
   mapping = aes(x = body_mass_g, y = prob_missing, shape = body_mass_missing)
@@ -482,14 +529,26 @@ ggplot(
 ::: {.callout-note collapse="false"}
 ## Question
 
-The open circles (missing values) are concentrated at high body mass, but some have a low predicted probability of missingness. Why is the prediction of missingness not simply increasing with body mass?
+The open circles (missing values) are concentrated at high body mass, but the predicted probability on the y-axis is not a simple increasing function of body mass. Why is this so?
 :::
+
+## Concept review
+
+- **Tidy and untidy data are both useful**, depending on the task. Wide (matrix) format is natural for linear algebra and many statistical model inputs; long (tidy) format is natural for arbitrary filtering, grouping, and plotting. `pivot_longer()` and `pivot_wider()` let you move between them.
+
+- **Tidy data makes data manipulation and visualization easier** because each variable occupies exactly one column, so a single column can directly drive a grouping, a color aesthetic, or a facet without any reshaping inside the plotting call.
+
+- **Good data practices make data useful to others** (and to your future self): keep raw data untouched, use machine-readable column names, record units and provenance, set random seeds when necessary, log software versions, and use structured metadata with standard ontologies when depositing data publicly.
+
+- **dplyr and ggplot2 are powerful because of their composability.** Both are built around a small set of simple, well-named operations that chain together cleanly. A `filter()` followed by a `group_by()` and a `summarize()`, or a `geom_point()` followed by a `facet_wrap()`, reads almost like a description of what you want. Complex operations built from simple pieces tend to stay readable even as they grow.
+
+- **Missingness is data.** Modeling the probability that a value is missing, and understanding whether that probability depends on observed or unobserved quantities (MAR vs. MNAR), is an important part of any honest analysis.
 
 ## Session info
 
-`sessionInfo()` prints the R version, operating system, locale, and the name and version of every package loaded in the current session. Including it at the end of a script or notebook is a lightweight form of provenance: if a result changes or a bug appears months later, the session info is often the first place to look — it tells you exactly what software produced the output. It is also essential for reproducibility reports and as supplementary information in publications.
+`sessionInfo()` prints the R version, operating system, locale, and the name and version of every package loaded in the current session. Including it at the end of a script or notebook is a lightweight form of provenance: if a result changes or a bug appears months later, the session info is often the first place to look; it tells you exactly what software produced the output. It is also essential for reproducibility reports and as supplementary information in publications.
 
-A popular alternative is `sessionInfo()` from the *sessioninfo* package, which formats packages in a cleaner table and records the *source* of each package — CRAN, Bioconductor, or a GitHub repository with its commit SHA — which matters when packages installed from GitHub are not on a numbered release. *devtools* depends on *sessioninfo* and re-exports the same function as `devtools::session_info()`, so if devtools is already loaded you can call it either way.
+A popular alternative is `sessionInfo()` from the *sessioninfo* package, which formats packages in a cleaner table and records the *source* of each package: CRAN, Bioconductor, or a GitHub repository with its commit SHA, which matters when packages installed from GitHub are not on a numbered release. *devtools* depends on *sessioninfo* and re-exports the same function as `devtools::session_info()`, so if devtools is already loaded you can call it either way.
 
 ```{r}
 sessionInfo()
@@ -498,3 +557,7 @@ sessionInfo()
 ```{r}
 devtools::session_info()
 ```
+
+## Use of generative AI
+
+Portions of this tutorial were developed with the assistance of [Claude Code](https://claude.ai/code) (Anthropic).
