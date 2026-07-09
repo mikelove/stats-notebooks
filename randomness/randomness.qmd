@@ -65,15 +65,16 @@ gentoo_mass <- penguins$body_mass_g[
   penguins$species == "Gentoo" & !is.na(penguins$body_mass_g)
 ]
 
+cat("\nnumber of Gentoos:\n")
 length(gentoo_mass)
 ```
 
-Use the slider to choose a sample size `n`. Each time the slider moves, a new random sample of `n` penguins is drawn from the Gentoo population and the sample mean is computed. The red line marks the sample mean; the dashed green line marks the true population mean.
+Use the slider to choose a sample size `n`, then press "Draw Sample" to draw a new random sample of `n` penguins from the Gentoo population and compute the sample mean. The red line marks the sample mean; the dashed green line marks the true population mean.
 
 ```{r}
 #| echo: false
-plot_penguin_sample <- function(population, n) {
-  sample_mass <- sample(population, size = n, replace = TRUE)
+plot_penguin_sample <- function(population, sample_mass, hd = FALSE) {
+  n <- length(sample_mass)
   plot(
     NA,
     xlim = range(population),
@@ -84,12 +85,15 @@ plot_penguin_sample <- function(population, n) {
     main = paste0("Sample of n = ", n, " Gentoo penguins"),
     xlab = "body mass (g)"
   )
-  text(
-    x = sample_mass,
-    y = jitter(rep(1, n), amount = 0.3),
-    labels = "\U1F427",
-    cex = 1.5
-  )
+  y_pos <- jitter(rep(1, n), amount = 0.3)
+  if (hd) {
+    text(x = sample_mass, y = y_pos, labels = "\U1F427", cex = 1.5)
+  } else {
+    points(x = sample_mass, y = y_pos, pch = 19,
+           col = adjustcolor("grey30", 0.75), cex = 2.2)
+    points(x = sample_mass - 45, y = y_pos - .01, pch = 17,
+           col = adjustcolor("darkorange", 0.5), cex = 1.2)
+  }
   abline(v = mean(sample_mass), col = "firebrick", lwd = 2)
   abline(v = mean(population), col = "darkgreen", lwd = 2, lty = 2)
   legend(
@@ -100,20 +104,50 @@ plot_penguin_sample <- function(population, n) {
     ),
     col = c("firebrick", "darkgreen"),
     lty = c(1, 2),
-    lwd = 2
+    lwd = 2, 
+    y.intersp = 1.5
   )
 }
 ```
 
 ```{ojs}
-viewof n_slider = Inputs.range([5, 100], {value: 30, step: 1, label: "Sample size n"})
+//| echo: false
+viewof controls = {
+  const s = Inputs.range([5, 100], {value: 30, step: 1, label: "Sample size n"});
+  const t = Inputs.toggle({label: "High-definition", value: false});
+  const div = html`<div style="display:flex;align-items:center;gap:2rem">${s}${t}</div>`;
+  div.value = {n: s.value, hd: t.value};
+  s.oninput = t.oninput = () => {
+    div.value = {n: s.value, hd: t.value};
+    div.dispatchEvent(new CustomEvent("input"));
+  };
+  return div;
+}
+n_slider = controls.n
+hd = controls.hd
+viewof draw_btn = {
+  const btn = document.createElement("button");
+  btn.textContent = "Draw Sample";
+  btn.style = "padding:4px 14px;margin-top:0.3rem";
+  btn.value = JSON.stringify({n: 30, hd: false});
+  btn.onclick = () => {
+    btn.value = JSON.stringify({n: n_slider, hd: hd});
+    btn.dispatchEvent(new CustomEvent("input", {bubbles: true}));
+  };
+  return btn;
+}
+draw_n = JSON.parse(draw_btn).n
+draw_hd = JSON.parse(draw_btn).hd
 ```
 
 ```{r}
+#| warning: false
 #| eval: false
 #| input:
-#|   - n_slider
-plot_penguin_sample(gentoo_mass, n_slider)
+#|   - draw_n
+#|   - draw_hd
+sample_mass <- sample(gentoo_mass, size = draw_n, replace = TRUE)
+plot_penguin_sample(gentoo_mass, sample_mass, draw_hd)
 ```
 
 ## Key functions
