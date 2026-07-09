@@ -69,7 +69,7 @@ cat("\nnumber of Gentoos:\n")
 length(gentoo_mass)
 ```
 
-Use the slider to choose a sample size `n`, then press "Draw Sample" to draw a new random sample of `n` penguins from the Gentoo population and compute the sample mean. The red line marks the sample mean; the dashed green line marks the true population mean.
+Use the slider to choose a sample size `n`. Each time the slider moves, a new random sample of `n` penguins is drawn from the Gentoo population and the sample mean is computed. The red line marks the sample mean; the dashed green line marks the true population mean.
 
 ```{r}
 #| echo: false
@@ -112,42 +112,25 @@ plot_penguin_sample <- function(population, sample_mass, hd = FALSE) {
 
 ```{ojs}
 //| echo: false
-viewof controls = {
-  const s = Inputs.range([5, 100], {value: 30, step: 1, label: "Sample size n"});
-  const t = Inputs.toggle({label: "High-definition", value: false});
-  const div = html`<div style="display:flex;align-items:center;gap:2rem">${s}${t}</div>`;
-  div.value = {n: s.value, hd: t.value};
-  s.oninput = t.oninput = () => {
-    div.value = {n: s.value, hd: t.value};
-    div.dispatchEvent(new CustomEvent("input"));
-  };
-  return div;
+viewof n_slider = Inputs.range([5, 100], {value: 30, step: 1, label: "Sample size n"})
+viewof hd = Inputs.toggle({label: "High-definition", value: false})
+viewof seed_btn = {
+  const b = Inputs.button("Draw Sample");
+  b.querySelector("button").style.cssText = "background:#f0f0f0;color:#333;border:1px solid #ccc";
+  return b;
 }
-n_slider = controls.n
-hd = controls.hd
-viewof draw_btn = {
-  const btn = document.createElement("button");
-  btn.textContent = "Draw Sample";
-  btn.style = "padding:4px 14px;margin-top:0.3rem";
-  btn.value = JSON.stringify({n: 30, hd: false});
-  btn.onclick = () => {
-    btn.value = JSON.stringify({n: n_slider, hd: hd});
-    btn.dispatchEvent(new CustomEvent("input", {bubbles: true}));
-  };
-  return btn;
-}
-draw_n = JSON.parse(draw_btn).n
-draw_hd = JSON.parse(draw_btn).hd
 ```
 
 ```{r}
 #| warning: false
 #| eval: false
 #| input:
-#|   - draw_n
-#|   - draw_hd
-sample_mass <- sample(gentoo_mass, size = draw_n, replace = TRUE)
-plot_penguin_sample(gentoo_mass, sample_mass, draw_hd)
+#|   - n_slider
+#|   - hd
+#|   - seed_btn
+set.seed(seed_btn)
+sample_mass <- sample(gentoo_mass, size = n_slider, replace = TRUE)
+plot_penguin_sample(gentoo_mass, sample_mass, hd)
 ```
 
 ## Key functions
