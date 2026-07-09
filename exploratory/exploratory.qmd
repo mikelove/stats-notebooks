@@ -152,7 +152,7 @@ skim(peaks)
 ::: {.callout-note collapse="false"}
 ## Question
 
-Scroll to the right in the numeric variable table. How would you describe the distribution of the different numeric columns? Do these distributions make sense? Note that our subset of the data contains just the first 1,000 regions on chromosome 1.
+Look at the histograms for the numeric variable table. How would you describe the distribution of the different numeric columns? Do these distributions make sense? Note that our subset of the data contains just the first 1,000 regions on chromosome 1.
 :::
 
 We will also run `skim` on the column data. We do this twice: once on the data after de-selecting the columns `assigned` and `peak_count`, and once just on those two columns. This is because the scale of those two columns is much larger than the other numberic columns, so it helps with printing to isolate them.
@@ -355,7 +355,7 @@ ggplot(
   stat_summary(fun = median, geom = "point", size=3)
 ```
 
-The "QQ-plot" aligns the quantiles of the data with those of a Normal distribution (or another reference distribution). If the values fall roughly on a line, this means the data is roughly normally distributed.
+The "QQ-plot" aligns the quantiles of the data with those of a Normal distribution (or another reference distribution). If the values fall roughly on a line, this means the data is roughly normally distributed. I don't personally use QQ-plots very often, but if you have to compare to a reference distribution for some reason, these are standard.
 
 ```{r}
 plot_qq(log_counts_6, ncol = 3)
@@ -374,7 +374,7 @@ There are a number of packages that provide more fine-grained correlation matric
 ::: {.callout-note collapse="false"}
 ## Question
 
--   What could you say, in broad terms, about the first six samples in terms of these plots?
+-   What could you say, in broad terms, about the first six samples in terms of these plots (pick whichever plots you want to focus on, e.g. from the colored densities and correlation matrix)?
 -   For those who are more familiar with omics data such as gene expression and chromatin accessibility: suppose we also read in the gene expression data as a matrix. What might be a way to check that our data is properly aligned by sample across the two assays? What part of a gene must be accessible for it to be expressed? What steps would it take to perform this check?
 :::
 
@@ -529,7 +529,9 @@ rownames(se) <- rowData(se)$peak_id
 
 Next we will use the information about location of the genomic regions, to enable more sophisticated downstream EDA.
 
-## Case study: chromatin accessibility
+## Advanced case study: chromatin accessibility
+
+The following is a more advanced lab, which assumes some knowledge of genomics and computational biology. Feel free to stop here, or explore the rest. Ask TAs or instructors if you want more information, or you can also ask various AI chatbots, as this is a very well studied dataset with multiple papers and tutorials built upon it, and thematically examining chromatin accessibility across sample conditions (including immune stimulation) is a common genomics task.
 
 In the following case study, we briefly explore the chromatin accessibility in these 1,000 genomic regions. We will make use of the PCA results, and PC1 which apparently highlights regions that distinguish the naive condition from the immune response conditions (in particular the combined treatment).
 
@@ -632,13 +634,13 @@ plot(start(p), p$abs_scaled_pc1)
 Suppose we want to know about which regions have high values contributing to PC1, in terms of tiles of 10,000 bp along this region:
 
 ```{r}
-tiles <- range(p) %>%
+tiles <- range(p) |>
   tile_ranges(width = 1e4) %>%
   mutate(id = seq_along(.))
 tiles
 ```
 
-Syntax note: in the above code chunk, I use `%>%` instead of `|>`. This minor detail is because only `%>%` allows for the use of `.` nested within a function (here nested within `mutate`). For the most part `|>` and `%>%` are exchangeable, with `|>` preferred as it is part of base R.
+Syntax note: in the above code chunk, I use `%>%` at one point instead of `|>`. This minor detail is because only `%>%` allows for the use of `.` nested within a function (here nested within `mutate`). For the most part `|>` and `%>%` are exchangeable, with `|>` slightly preferred as it is part of base R.
 
 See also `slide_ranges` in _plyranges_ package, and `tileGenome` in the _GenomicRanges_ package.
 
@@ -685,6 +687,8 @@ max_tile <- tiles |> dplyr::slice(which.max(tab$sum_pc1))
 p |>
   filter_by_overlaps(max_tile)
 ```
+
+## Advanced case study: bootstrapping genomic data
 
 A final code chunk demonstrates how we might begin to ask about our observed sequence with respect to _null_ data. We can take the original data and randomize it using the bootstrap. For more details see the _bootRanges_ vignette in the _nullranges_ package, or in the [bootstrap chapter](https://tidyomics.github.io/tidy-ranges-tutorial/bootstrap-overlap.html) of _tidy ranges tutorial_.
 
@@ -762,7 +766,7 @@ library(iSEE)
 iSEE(se_thin)
 ```
 
-### Missing data
+### Missing data toolkit
 
 Identifying and characterizing missingness is important! The *naniar* package helps to deal with and visualize patterns of missingness. As our above worked example dataset doesn't contain very many missing values, here I simulate a dataset with missingness.
 

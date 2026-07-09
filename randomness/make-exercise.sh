@@ -22,6 +22,8 @@ BEGIN { yaml_count = 0 }
 /^    embed-resources: true$/ { next }
 /^params:/                    {
   print "webr:"
+  print "  packages:"
+  print "    - palmerpenguins"
   print $0; next
 }
 /^```\{r\}$/                  { print "```{webr}"; next }
