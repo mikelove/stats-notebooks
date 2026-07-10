@@ -48,7 +48,7 @@ While experiments and data help us to understand biological phenomena, simulatio
 
 I use the word "estimate" to refer to a particular computed value from data. An "estimator" is a formula, e.g. $\bar{x}_n = \frac{1}{n} \sum_{i=1}^{n} x_i$, the mean of the sample with sample size _n_. Another estimator is the median (the middle value, when the data is ranked in order). The mean and the median are both estimators for $\mu$, the thing which we want to estimate, but they have different properties, both when the data is Normal, and for when the data may have outliers or "heavy tails" (e.g. many outliers).
 
-## Build a sampler
+## Build a penguin sampler
 
 The [palmerpenguins](https://allisonhorst.github.io/palmerpenguins/) package provides data for 344 penguins across three species collected at Palmer Station, Antarctica. Details and credit can be found at that link. We focus here on the body mass of Gentoo penguins as a stand-in for a real biological population.
 
@@ -133,7 +133,91 @@ sample_mass <- sample(gentoo_mass, size = n_slider, replace = TRUE)
 plot_penguin_sample(gentoo_mass, sample_mass, hd)
 ```
 
-## Key functions
+## Mean and median
+
+The mean and median are both estimators for the center of a distribution, but they behave differently when data are skewed. For symmetric distributions they give similar values (for the Normal distribution they are both _unbiased_ and _consistent_ estimators of $\mu$), but for right-skewed data the mean is pulled toward the long tail while the median stays closer to the bulk of the data.
+
+Below we sample from a log-normal distribution with parameters `meanlog = 0` and `sdlog = 1`. The true mean is $e^{0.5} \approx 1.65$ and the true median is $e^0 = 1$. The sample mean and median reflect this difference:
+
+```{r}
+#| echo: false
+plot_mean_median <- function(x) {
+  n <- length(x)
+  plot(
+    NA,
+    xlim = c(0, 8),
+    ylim = c(0.5, 1.5),
+    yaxt = "n",
+    ylab = "",
+    bty = "l",
+    main = paste0("Sample of n = ", n, " from log-normal"),
+    xlab = "value"
+  )
+  y_pos <- jitter(rep(1, n), amount = 0.3)
+  points(x, y_pos, pch = 19,
+         col = adjustcolor("grey30", 0.5), cex = 1.2)
+  abline(v = mean(x), col = "firebrick", lwd = 2)
+  abline(v = median(x), col = "dodgerblue", lwd = 2, lty = 2)
+  legend(
+    "topright",
+    legend = c(
+      paste0("mean = ", round(mean(x), 2)),
+      paste0("median = ", round(median(x), 2))
+    ),
+    col = c("firebrick", "dodgerblue"),
+    lty = c(1, 2),
+    lwd = 2,
+    y.intersp = 1.5
+  )
+}
+```
+
+```{ojs}
+//| echo: false
+viewof n_skew = Inputs.range([5, 1000], {value: 30, step: 1, label: "Sample size n"})
+viewof seed_skew = {
+  const b = Inputs.button("Draw Sample");
+  b.querySelector("button").style.cssText = "background:#f0f0f0;color:#333;border:1px solid #ccc";
+  return b;
+}
+```
+
+```{r}
+#| warning: false
+#| eval: false
+#| input:
+#|   - n_skew
+#|   - seed_skew
+set.seed(seed_skew)
+x <- rlnorm(n_skew, meanlog = 0, sdlog = 1)
+plot_mean_median(x)
+```
+
+## Unbiased and consistent
+
+Suppose we have an experiment with _n_ = 5. In statistics, we describe that an estimator, such as the sample mean, is unbiased if:
+
+$$
+E(\hat{\mu}_{n=5}) = \mu
+$$
+
+We can write:
+
+$$
+E(\hat{\mu}_{n=5}) - \mu = 0
+$$
+
+The bias of $\hat{\mu}$ (left hand side) is zero, or $\hat{\mu}$ is "unbiased".
+
+::: {.callout-note collapse="false"}
+## Question
+
+Use the two samplers above and vary the sample size _n_. Notice that the sample mean (and median) move around less as _n_ gets larger. How fast does this spread decrease? Does it ever reach zero for finite _n_? Try to guess a formula that describes how the variance of the sample mean around the true mean changes as a function of _n_. This will be worked out in the Appendix.
+:::
+
+# Appendix
+
+## Key R functions for replication
 
 First review these two basic R functions, `lapply` and `sapply`.
 
@@ -254,8 +338,6 @@ Now we will start running more than one simulation at a time. This will allow us
 
 Let's start by writing a function that has 4 arguments: the sample size `n`, the number of times to repeat the simulation `nreps`, and the mean and standard deviation of the data generating process, i.e. of the Normal distribution we use to make the data.
 
-### Across sample size
-
 ```{r}
 simulate_estimating_means <- \(n, nreps, mean, sd) {
   replicate(nreps, {
@@ -342,19 +424,7 @@ Let's look at the _mean_ and _variance_ of our _estimates_. Note for a moment th
 (mean_of_means <- sapply(est_means, mean))
 ```
 
-We would hope the mean of the estimates is close to the true value. In fact, we have a guarantee that as `nreps` grows, the mean of the estimates will converge to the true value. In statistics, we write this, for example for our experiments with sample size of 5:
-
-$$
-E(\hat{\mu}_{n=5}) = \mu
-$$
-
-We can write:
-
-$$
-E(\hat{\mu}_{n=5}) - \mu = 0
-$$
-
-The bias of $\hat{\mu}$ (left hand side) is zero, or $\hat{\mu}$ is "unbiased".
+We would hope the mean of the estimates is close to the true value. In fact, we have a guarantee that as `nreps` grows, the mean of the estimates will converge to the true value, as discussed above. 
 
 However, their variances are pretty different, and do not converge to the same value if we increase `nreps`:
 
