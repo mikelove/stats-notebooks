@@ -46,7 +46,7 @@ In the above list of simulation tasks, you can think of "distribution" = data ge
 
 While experiments and data help us to understand biological phenomena, simulations help to understand statistical concepts -- one can directly observe and quantify the behavior of estimators under controlled conditions where the true underlying parameters are known. And they help us consider how estimates are random and have distributions as they are functions of data.
 
-I use the word "estimate" to refer to a particular computed value from data. An "estimator" is a formula, e.g. $\bar{x}_n = \frac{1}{n} \sum_{i=1}^{n} x_i$, the mean of the sample with sample size _n_. Another estimator is the median (the middle value, when the data is ranked in order). The mean and the median are both estimators for $\mu$, the thing which we want to estimate, but they have different properties, both when the data is Normal, and for when the data may have outliers or "heavy tails" (e.g. many outliers).
+I use the word "estimate" to refer to a particular computed value from data. An "estimator" is a formula, e.g. $\bar{x}_n = \frac{1}{n} \sum_{i=1}^{n} x_i$, the mean of the sample with sample size _n_. Another estimator is the median (the middle value, when the data is ranked in order). The mean and the median are both estimators for $\mu$, the thing which we want to estimate, but they have different properties, both when the data is Normal, and for when the data may have a skew to the right (many high values) or to the left (many low values).
 
 ## Build a penguin sampler
 
@@ -133,9 +133,37 @@ sample_mass <- sample(gentoo_mass, size = n_slider, replace = TRUE)
 plot_penguin_sample(gentoo_mass, sample_mass, hd)
 ```
 
-## Mean and median
+## Unbiased and consistent
 
-The mean and median are both estimators for the center of a distribution, but they behave differently when data are skewed. For symmetric distributions they give similar values (for the Normal distribution they are both _unbiased_ and _consistent_ estimators of $\mu$), but for right-skewed data the mean is pulled toward the long tail while the median stays closer to the bulk of the data.
+We can see the the mean moves around in the above visualization, and that it moves around less as _n_ gets larger. Let's define two terms about the behavior of the mean: bias and consistency.
+
+Suppose we have an experiment with _n_ = 5. In statistics, we describe that an estimator, such as the sample mean, is _unbiased_ if:
+
+$$
+E(\hat{\mu}_{n=5}) = \mu
+$$
+
+We can write:
+
+$$
+E(\hat{\mu}_{n=5}) - \mu = 0
+$$
+
+The bias of $\hat{\mu}$ (left hand side) is zero, or $\hat{\mu}$ is "unbiased".
+
+A related but distinct property is _consistency_: an estimator is consistent if it converges to the true value as the sample size grows to infinity. 
+
+Formally, for the sample mean, we would write that for any small number $\varepsilon > 0$, the probability of being far from $\mu$ goes to zero as $n \to \infty$:
+
+$$
+P(|\hat{\mu}_n - \mu| > \varepsilon) \to 0 \quad \text{as } n \to \infty
+$$
+
+Intuitively, we can collect enough data such that the sample mean will be as close to $\mu$ as we need.
+
+## Mean vs. median
+
+The mean and median are both estimators for the center of a distribution, but they behave differently when data are skewed. For symmetric distributions they give similar values (for the Normal distribution the median is also an _unbiased_ and _consistent_ estimator of $\mu$), but for right-skewed data the mean is pulled toward the long tail while the median stays closer to the bulk of the data.
 
 Below we sample from a log-normal distribution with parameters `meanlog = 0` and `sdlog = 1`. The true mean is $e^{0.5} \approx 1.65$ and the true median is $e^0 = 1$. The sample mean and median reflect this difference:
 
@@ -193,31 +221,247 @@ x <- rlnorm(n_skew, meanlog = 0, sdlog = 1)
 plot_mean_median(x)
 ```
 
-## Unbiased and consistent
-
-Suppose we have an experiment with _n_ = 5. In statistics, we describe that an estimator, such as the sample mean, is unbiased if:
-
-$$
-E(\hat{\mu}_{n=5}) = \mu
-$$
-
-We can write:
-
-$$
-E(\hat{\mu}_{n=5}) - \mu = 0
-$$
-
-The bias of $\hat{\mu}$ (left hand side) is zero, or $\hat{\mu}$ is "unbiased".
-
 ::: {.callout-note collapse="false"}
 ## Question
 
 Use the two samplers above and vary the sample size _n_. Notice that the sample mean (and median) move around less as _n_ gets larger. How fast does this spread decrease? Does it ever reach zero for finite _n_? Try to guess a formula that describes how the variance of the sample mean around the true mean changes as a function of _n_. This will be worked out in the Appendix.
 :::
 
+## Interlude
+
+Consider a penguin, called $P$, who has just read the previous section. $P$ is satisfied that $\hat{\mu}$ is unbiased and consistent, but wonders: what does $E[\bar{x}_n]$ actually *mean*? The expectation $E[\cdot]$ appears in every statistics textbook, but what is it, precisely?
+
+$P$ knows of course that it is easy to define in the case of categorical variables, e.g. a coin or a dice. But for things like a dataset with _n_ numbers it's a bit harder to define.
+
+So $P$ sets off to find the source of this knowledge of randomness and expectation. $P$ is told that the answer can be found on the mountain called "$\Omega$". 
+
+So $P$ sets off to climb the mountain and bring down the truth from $\Omega$.
+
+```{ojs}
+//| echo: false
+{
+  const W = 560, H = 300;
+  const canvas = html`<canvas width=${W} height=${H} style="display:block;border-radius:6px"></canvas>`;
+  const ctx = canvas.getContext("2d");
+
+  const GY    = H - 50;
+  const start = {x: 70,  y: GY};
+  const baseL = {x: 220, y: GY};
+  const baseR = {x: 500, y: GY};        // symmetric: peak.x + (peak.x - baseL.x)
+  const peak  = {x: 360, y: 50};
+
+  const omegas = [];
+
+  function lerp(a, b, t) {
+    return {x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t};
+  }
+
+  // t in [0,4]: walk right | climb | descend | walk left
+  function getPos(t) {
+    if (t < 1) return lerp(start, baseL, t);
+    if (t < 2) return lerp(baseL, peak, t - 1);
+    if (t < 3) return lerp(peak, baseL, t - 2);
+    return lerp(baseL, start, t - 3);
+  }
+
+  function drawScene(t) {
+    ctx.clearRect(0, 0, W, H);
+
+    // Sky
+    const sky = ctx.createLinearGradient(0, 0, 0, GY);
+    sky.addColorStop(0, "#c8e6f5");
+    sky.addColorStop(1, "#e8f4f8");
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, W, GY);
+
+    // Ground
+    ctx.fillStyle = "#a8c090";
+    ctx.fillRect(0, GY, W, H - GY);
+    ctx.strokeStyle = "#5a7a50";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, GY);
+    ctx.lineTo(W, GY);
+    ctx.stroke();
+
+    // Mountain (symmetric triangle)
+    ctx.beginPath();
+    ctx.moveTo(baseL.x, GY);
+    ctx.lineTo(peak.x, peak.y);
+    ctx.lineTo(baseR.x, GY);
+    ctx.closePath();
+    ctx.fillStyle = "#7a9ab0";
+    ctx.fill();
+    ctx.strokeStyle = "#4a6a80";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Snow cap
+    const sl = lerp(baseL, peak, 0.82);
+    const sr = lerp(baseR, peak, 0.82);
+    ctx.beginPath();
+    ctx.moveTo(sl.x, sl.y);
+    ctx.lineTo(peak.x, peak.y);
+    ctx.lineTo(sr.x, sr.y);
+    ctx.closePath();
+    ctx.fillStyle = "white";
+    ctx.fill();
+
+    // Ω at summit
+    ctx.font = "bold 20px serif";
+    ctx.fillStyle = "#333";
+    ctx.textAlign = "center";
+    ctx.fillText("Ω", peak.x, peak.y - 12);
+
+    // Accumulated omega pile: 4 per row, stacked up from ground
+    ctx.font = "bold 14px serif";
+    ctx.fillStyle = "#111";
+    ctx.textAlign = "center";
+    omegas.forEach((_, i) => {
+      const col = i % 4;
+      const row = Math.floor(i / 4);
+      ctx.fillText("ω", 20 + col * 22, GY - 8 - row * 18);
+    });
+
+    const r = 11;
+    const pos = getPos(Math.min(t, 4));
+    const facingRight = t < 2;
+
+    // Omega at summit moment
+    if (t >= 1.85 && t <= 2.15) {
+      ctx.font = "bold 14px serif";
+      ctx.fillStyle = "#111";
+      ctx.textAlign = "center";
+      ctx.fillText("ω", peak.x + 24, peak.y + 6);
+    }
+    // Omega carried — disappears exactly when pile omega appears (t < 4)
+    if (t > 2.15 && t < 4) {
+      ctx.font = "bold 14px serif";
+      ctx.fillStyle = "#111";
+      ctx.textAlign = "center";
+      ctx.fillText("ω", pos.x + 22, pos.y - r - 18);
+    }
+
+    drawPenguin(pos.x, pos.y, facingRight, r);
+  }
+
+  function drawPenguin(x, y, facingRight, r) {
+    const bs = r * 0.9;
+    const cx = x, cy = y - r;
+    const bx = cx + (facingRight ? r * 0.85 : -r * 0.85);
+    const by = cy;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, 2 * Math.PI);
+    ctx.fillStyle = "rgba(77,77,77,0.75)";
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(bx - bs * 0.5, by + bs * 0.6);
+    ctx.lineTo(bx + bs * 0.5, by + bs * 0.6);
+    ctx.lineTo(bx, by - bs * 0.4);
+    ctx.closePath();
+    ctx.fillStyle = "rgba(255,140,0,0.5)";
+    ctx.fill();
+  }
+
+  drawScene(0);
+
+  const btnStyle = "margin:6px 4px 6px 0;padding:4px 14px;background:#f0f0f0;color:#333;border:1px solid #ccc;cursor:pointer";
+  let raf = null;
+  const btn = html`<button style="${btnStyle}">Send P up the mountain</button>`;
+  const btnClear = html`<button style="${btnStyle}">Clear</button>`;
+
+  btn.onclick = () => {
+    if (raf) cancelAnimationFrame(raf);
+    let t = 0;
+    function step() {
+      drawScene(t);
+      t += 0.016;
+      if (t < 4.05) {
+        raf = requestAnimationFrame(step);
+      } else {
+        omegas.push(omegas.length);     // just need a count; position computed in drawScene
+        drawScene(4);
+      }
+    }
+    step();
+  };
+
+  btnClear.onclick = () => {
+    if (raf) cancelAnimationFrame(raf);
+    omegas.length = 0;
+    drawScene(0);
+  };
+
+  return html`<div>${btn}${btnClear}${canvas}</div>`;
+}
+```
+
+As you see, when $P$ finally reaches the peak, all $P$ finds up there is a small $\omega$. $P$ picks it up and carries it back down. $P$ then repeats this again and again, but can never grab the $\Omega$.
+
+Then $P$ comes to a realization. As $P$ collects all of the $\omega$s from $\Omega$ mountain, $P$ realizes they all have different weight. This is exactly how the expectation works: random datasets are sampled in real life proportional to their probability. When we define the expectation using integration, we have to weigh each dataset according to how likely it is to be seen. $\Omega$ represents all possible datasets, an infinite amount. Only through calculus can we tame infinity and resolve to a finite sum.
+
+```{r}
+#| echo: false
+#| fig-width: 4
+#| fig-height: 3
+par(mar = c(0, 0, 0, 0), bg = "#e8f4f8")
+plot.new()
+plot.window(xlim = c(0, 10), ylim = c(0, 10))
+
+# ground - lighter green, fills whole bottom
+rect(-5, -5, 15, 1.4, col = "#a8c090", border = "#5a7a50")
+
+# 7x7 omega grid, center omegas bigger
+for (row in 0:6) {
+  for (col in 0:6) {
+    dist <- sqrt((col - 3)^2 + (row - 3)^2)
+    sz <- 0.45 + 1.4 * exp(-dist^2 / 5)
+    text(1.2 + col * 0.8, 1.9 + row * 0.85, "ω",
+         cex = sz, font = 2, col = "#111111")
+  }
+}
+
+# penguin body (circle) and beak (triangle)
+px <- 8.3
+py <- 2.2
+points(px, py, pch = 19, col = adjustcolor("grey30", 0.75), cex = 6)
+points(px - 0.6, py - 0.2, pch = 17,
+       col = adjustcolor("darkorange", 0.5), cex = 2.5)
+```
+
+$E[\bar{x}_n]$ is therefore a weighted average of all the possible values the sample mean could take, weighted by how likely each one is:
+
+$$
+\mathbb{E}[\bar{x}_{n=5}] = \int_{\Omega} \bar{x}_{n=5}(\omega) \, dP(\omega)
+$$
+
+- $\Omega$ is the **sample space**.
+
+- $\omega \in \Omega$ is a single **outcome**.
+
+- $\bar{x}_{n=5}(\omega)$ is the sample mean applied to one particular dataset.
+
+- $dP(\omega)$ is the **probability measure** and does a lot of work here. It assigns a weight to each outcome according to the data-generating distribution. Analogous to $dx$ in ordinary calculus, $dP(\omega)$ represents the probability of landing in a small neighborhood around $\omega$: the more likely that region of the sample space is under the data-generating process, the more it contributes to the integral. 
+
+For the example of the sample average of 5 numbers:
+
+::: {.callout-note collapse="true"}
+## Question: What is $\Omega$?
+
+For $n = 5$ real-valued draws, $\Omega = \mathbb{R}^5$, i.e. every possible 5-tuple: $(x_1, x_2, x_3, x_4, x_5)$.
+:::
+
+::: {.callout-note collapse="true"}
+## Question: What is $dP(\omega)$?
+
+For 5 identical and independent draws from a distribution with density $f$, this weight is $\prod_{i=1}^{5} f(x_i)\, dx_i$. For a Normal random variable, this depends only on $\mu$ and $\sigma$.
+:::
+
+So the expectation is a 5-dimensional integral: sum up the sample mean over every conceivable dataset, each weighted by how probable that dataset is under the data-generating process. This is exactly what the simulations in this document approximate: each replicate is one $\omega$, and averaging $\bar{x}_{n=5}(\omega)$ across many replicates estimates the integral. 
+
 # Appendix
 
-## Key R functions for replication
+## Key R functions for simulation
 
 First review these two basic R functions, `lapply` and `sapply`.
 
@@ -293,7 +537,7 @@ What do you notice about these estimates? Are they close to the true mean?
 Use `sapply` to estimate the sample mean for each sample size in `n_values`, drawing `n` random values from a Normal distribution with mean `true_mean` and standard deviation `true_sd`.
 :::
 
-::: {.callout-tip collapse="true"}
+::: {.callout-note collapse="true"}
 ## Hint
 
 The first argument to `sapply` is the vector to iterate over. Each element is passed as `n` to the anonymous function; use it inside `rnorm()` and wrap the result with `mean()`.
