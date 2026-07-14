@@ -62,6 +62,13 @@ Here `control`, `IFNg`, and `Salmonella` are values of a `condition` variable, n
 
 There is nothing inherently _wrong_ with the above presentation, and in some contexts we may prefer the data as a matrix (for example for perfoming matrix algebra).  The point here is to note that different operations are easier to compute on one representation or the other.
 
+::: {.callout-note collapse="false"}
+## Question
+
+How would you plot this data? Suppose we want counts on the y-axis and conditions (control, IFNg, Salmonella) on the x-axis.
+:::
+
+
 ## `pivot_longer()`
 
 `pivot_longer()` takes multiple columns and collapses them into two: one for the former column names and one for the values.
@@ -189,7 +196,13 @@ counts_long |>
 ::: {.callout-note collapse="false"}
 ## Exercise
 
-Using `counts_long`, keep only rows where `count > 100`, then compute the mean count per `condition`.
+Using `counts_long`, keep only rows where `count > 100`, then compute the number of data per `condition` and the SD of counts per `condition`.
+:::
+
+::: {.callout-tip collapse="true"}
+## Hint
+
+The function `n()` will tell you how many rows are present, and it respects grouping by `group_by()`.
 :::
 
 ```{r}
@@ -199,7 +212,7 @@ Using `counts_long`, keep only rows where `count > 100`, then compute the mean c
 counts_long |>
   filter(______) |>
   group_by(______) |>
-  summarize(mean_count = ______)
+  summarize(n_remain = ___, sd_count = ______)
 ```
 
 ::: {.solution exercise="filter_ex"}
@@ -212,7 +225,7 @@ counts_long |>
 counts_long |>
   filter(count > 100) |>
   group_by(condition) |>
-  summarize(mean_count = mean(count))
+  summarize(n_remain = n(), sd_count = sd(count))
 ```
 
 :::
@@ -271,13 +284,47 @@ ggplot(
 
 The `color = condition` mapping is all it takes: ggplot2 assigns colors and adds a *guide* (legend) automatically. In base R we had to build a named color vector and call `legend()` by hand.
 
-*ggplot2* is built around a layered grammar of graphics. Each `+` adds a new layer or modification (a geometry like `geom_point`, a scale, a theme, a facet), so you can start with a minimal plot and layer complexity on top without rewriting anything. For instance, to add lines we add `geom_line` (with group defined in the mapping). To facet by condition we can simply add `facet_wrap(~ condition)`:
+*ggplot2* is built around a layered grammar of graphics. Each `+` adds a new layer or modification (a geometry like `geom_point`, a scale, a theme, a facet), so you can start with a minimal plot and layer complexity on top without rewriting anything.
+
+::: {.callout-note collapse="false"}
+## Exercise
+
+Extend the previous plot by adding lines to connect the points within each condition, and facet the plot by condition (make three plots, one for each condition).
+:::
+
+::: {.callout-tip collapse="true"}
+## Hint
+
+Lines can be drawn by adding `geom_line()` but requires telling the mapping (in `aes`) to know how to group the observations. Faceting can be accomplished with `facet_wrap(~ variable_to_facet_on)`.
+:::
 
 ```{r}
+#| caption: Add lines and facets to the ggplot
+#| exercise: ggplot_ex
+#| eval: false
 ggplot(
   data = counts_long,
   mapping = aes(
-    x = gene, y = count, 
+    x = gene, y = count,
+    color = condition, group = ______
+  )
+) +
+  geom_point(size = 3) +
+  ______ +
+  ______
+```
+
+::: {.solution exercise="ggplot_ex"}
+
+#### Solution
+
+```{r}
+#| exercise: ggplot_ex
+#| solution: true
+ggplot(
+  data = counts_long,
+  mapping = aes(
+    x = gene, y = count,
     color = condition, group = condition
   )
 ) +
@@ -285,6 +332,17 @@ ggplot(
   geom_line() +
   facet_wrap(~ condition)
 ```
+
+:::
+
+```{r}
+#| exercise: ggplot_ex
+#| check: true
+#| eval: false
+gradethis::grade_this_code()
+```
+
+More sophisticated plots can be built by layering additional geoms: `geom_line()` connects points, `geom_smooth()` fits and draws a curve through the data, and `stat_summary()` computes statistics (such as means and standard errors) and renders them as geoms directly within the plotting call, without needing a separate `dplyr` summarization step. For a complete reference of available geometries, statistics, scales, and themes, see the [ggplot2 documentation](https://ggplot2.tidyverse.org/reference/).
 
 ## Tips for making data findable, accessible, interoperable, and re-usable
 
@@ -315,6 +373,7 @@ counts_mat <- log10(counts_mat + 1)
 cat("geometric mean:\n")
 10^(rowMeans(counts_mat))
 counts_mat <- counts_mat - rowMeans(counts_mat)
+cat("\n")
 cat("log-transformed and centered data:\n")
 counts_mat
 ```
@@ -553,15 +612,11 @@ The open circles (missing values) are concentrated at high body mass, but the pr
 
 `sessionInfo()` prints the R version, operating system, locale, and the name and version of every package loaded in the current session. Including it at the end of a script or notebook is a lightweight form of provenance: if a result changes or a bug appears months later, the session info is often the first place to look; it tells you exactly what software produced the output. It is also essential for reproducibility reports and as supplementary information in publications.
 
-A popular alternative is `sessionInfo()` from the *sessioninfo* package, which formats packages in a cleaner table and records the *source* of each package: CRAN, Bioconductor, or a GitHub repository with its commit SHA, which matters when packages installed from GitHub are not on a numbered release. *devtools* depends on *sessioninfo* and re-exports the same function as `devtools::session_info()`, so if devtools is already loaded you can call it either way.
-
 ```{r}
 sessionInfo()
 ```
 
-```{r}
-devtools::session_info()
-```
+A popular alternative is `sessionInfo()` from the *sessioninfo* package, which formats packages in a cleaner table and records the *source* of each package: CRAN, Bioconductor, or a GitHub repository with its commit SHA, which matters when packages installed from GitHub are not on a numbered release. *devtools* depends on *sessioninfo* and re-exports the same function as `devtools::session_info()`, so if devtools is already loaded you can call it either way.
 
 ## Use of generative AI
 

@@ -26,16 +26,16 @@ Rendered HTML files are gitignored. To preview while editing:
 quarto preview randomness/randomness.qmd
 ```
 
-**Interactive notebook** (`data-comm/`): requires the `quarto-live` extension. Install once from inside the directory:
+**Interactive notebook** (`tidy-data/`): requires the `quarto-live` extension. Install once from inside the directory:
 
 ```bash
-cd data-comm && quarto add r-wasm/quarto-live
+cd tidy-data && quarto add r-wasm/quarto-live
 ```
 
 `tidy-data.qmd` is the source file — it uses standard `{r}` chunks and renders as a plain HTML notebook. It is editable in Positron/RStudio. To preview the interactive (webR) version:
 
 ```bash
-cd data-comm && ./preview.sh
+cd tidy-data && ./preview.sh
 ```
 
 `preview.sh` calls `make-exercise.sh`, which generates `tidy-data-exercise.qmd` by swapping `{r}` → `{webr}`, restoring the `live-html` format and `webr: packages:` YAML, adding the gradethis include lines, and removing `#| eval: false` from student exercise chunks. Then it runs `quarto preview` on the generated file. `tidy-data-exercise.qmd` is gitignored.
@@ -64,7 +64,7 @@ Do not use em dashes (—). Use commas, parentheses, semicolons, colons, or new 
 
 Never redefine a variable (e.g. `counts_wide`, `counts_long`) that is already defined earlier in the script. quarto-live uses a shared compute environment across chunks, so libraries loaded and variables defined in earlier chunks are available inside exercise chunks. Setup chunks (`#| setup: true`) do not need to reload libraries or redefine variables.
 
-### Interactive notebook (`data-comm/tidy-data.qmd`)
+### Interactive notebook (`tidy-data/tidy-data.qmd`)
 
 The source file uses standard `{r}` chunks and `format: html` so it works in any editor. `make-exercise.sh` transforms it into `tidy-data-exercise.qmd` for the browser using [`quarto-live`](https://r-wasm.github.io/quarto-live/). The generated file differs from the source in these ways:
 
@@ -95,7 +95,7 @@ The exploratory notebook reads data via `here("labs/exploratory/counts.txt.gz")`
 
 - **`exploratory/exploratory.qmd`** — Walks through EDA on a genomics dataset (Alasoo et al. 2018 ATAC-seq/RNA-seq). Covers data import, `skim`/`glimpse`, ggplot2, PCA, and organizing data into `SummarizedExperiment` objects. Uses Bioconductor packages: `DESeq2`, `SummarizedExperiment`, `plyranges`, `nullranges`.
 
-- **`data-comm/tidy-data.qmd`** — Interactive notebook on tidy data principles and tidyverse wrangling (`pivot_longer`, `pivot_wider`, `dplyr` verbs). Uses `quarto-live` + `gradethis` for in-browser exercises with auto-grading.
+- **`tidy-data/tidy-data.qmd`** — Interactive notebook on tidy data principles and tidyverse wrangling (`pivot_longer`, `pivot_wider`, `dplyr` verbs). Uses `quarto-live` + `gradethis` for in-browser exercises with auto-grading.
 
 ## Key R packages
 

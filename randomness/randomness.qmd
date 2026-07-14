@@ -865,3 +865,7 @@ points(n_values, 1/sqrt(n_values), type="b", col="blue")
 ```{r}
 sessionInfo()
 ```
+
+## Use of generative AI
+
+Portions of this tutorial were developed with the assistance of [Claude Code](https://claude.ai/code) (Anthropic).
