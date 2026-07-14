@@ -50,7 +50,7 @@ I use the word "estimate" to refer to a particular computed value from data. An 
 
 ## Build a penguin sampler
 
-The [palmerpenguins](https://allisonhorst.github.io/palmerpenguins/) package provides data for 344 penguins across three species collected at Palmer Station, Antarctica. Details and credit can be found at that link. We focus here on the body mass of Gentoo penguins as a stand-in for a real biological population.
+The [palmerpenguins](https://allisonhorst.github.io/palmerpenguins/) package provides data for 344 penguins across three species collected at Palmer Station, Antarctica. Details and credit can be found at that link. We focus here on the body mass of Gentoo penguins as a stand-in for a real biological population:
 
 ```{r}
 suppressPackageStartupMessages({
@@ -59,13 +59,13 @@ suppressPackageStartupMessages({
 
 })
 
-table(penguins$species)
+head(penguins)
 
 gentoo_mass <- penguins$body_mass_g[
   penguins$species == "Gentoo" & !is.na(penguins$body_mass_g)
 ]
 
-cat("\nnumber of Gentoos:\n")
+cat("\nnumber of Gentoo body mass measurements:\n")
 length(gentoo_mass)
 ```
 
@@ -346,9 +346,9 @@ So $P$ sets off to climb the mountain and bring down the truth from $\Omega$.
   }
 
   function drawPenguin(x, y, facingRight, r) {
-    const bs = r * 0.9;
+    const bs = r * 1.2;
     const cx = x, cy = y - r;
-    const bx = cx + (facingRight ? r * 0.85 : -r * 0.85);
+    const bx = cx + (facingRight ? r * 0.935 : -r * 0.935);
     const by = cy;
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, 2 * Math.PI);
@@ -396,9 +396,13 @@ So $P$ sets off to climb the mountain and bring down the truth from $\Omega$.
 }
 ```
 
-As you see, when $P$ finally reaches the peak, all $P$ finds up there is a small $\omega$. $P$ picks it up and carries it back down. $P$ then repeats this again and again, but can never grab the $\Omega$.
+As you see, when $P$ finally reaches the peak, all that $P$ can bring down is a small $\omega$. $P$ picks it up and carries it back down. $P$ then repeats this again and again.
 
-Then $P$ comes to a realization. As $P$ collects all of the $\omega$s from $\Omega$ mountain, $P$ realizes they all have different weight. This is exactly how the expectation works: random datasets are sampled in real life proportional to their probability. When we define the expectation using integration, we have to weigh each dataset according to how likely it is to be seen. $\Omega$ represents all possible datasets, an infinite amount. Only through calculus can we tame infinity and resolve to a finite sum.
+As $P$ collects all of the $\omega$s from $\Omega$ mountain, $P$ notices they all have different weight, each according to their probability. $\Omega$ represents all possible datasets, an infinite amount, but some are more likely than others.
+
+We need to use Calculus to compute a finite amount from an infinite set of values. On a continuous space, any single exact outcome $\omega$ has probability exactly zero. We can't just add up "probability times value" over uncountably many points the way we would sum over a discrete list, because every term would be zero. This is exactly what the expectation does: when we define the expectation using integration, we have to weight each dataset according to how likely it is to be seen. 
+
+While $P$ methodically collects all datasets from $Omega$, surveying all the possibilities, random datasets are sampled in real life proportional to their probability. 
 
 ```{r}
 #| echo: false
@@ -425,8 +429,8 @@ for (row in 0:6) {
 px <- 8.3
 py <- 2.2
 points(px, py, pch = 19, col = adjustcolor("grey30", 0.75), cex = 6)
-points(px - 0.6, py - 0.2, pch = 17,
-       col = adjustcolor("darkorange", 0.5), cex = 2.5)
+points(px - 0.65, py - 0.3, pch = 17,
+       col = adjustcolor("darkorange", 0.5), cex = 2.4)
 ```
 
 $E[\bar{x}_n]$ is therefore a weighted average of all the possible values the sample mean could take, weighted by how likely each one is:
@@ -457,7 +461,168 @@ For $n = 5$ real-valued draws, $\Omega = \mathbb{R}^5$, i.e. every possible 5-tu
 For 5 identical and independent draws from a distribution with density $f$, this weight is $\prod_{i=1}^{5} f(x_i)\, dx_i$. For a Normal random variable, this depends only on $\mu$ and $\sigma$.
 :::
 
-So the expectation is a 5-dimensional integral: sum up the sample mean over every conceivable dataset, each weighted by how probable that dataset is under the data-generating process. This is exactly what the simulations in this document approximate: each replicate is one $\omega$, and averaging $\bar{x}_{n=5}(\omega)$ across many replicates estimates the integral. 
+When we repeat an experiment many times, and then take the average over those $\bar{x}_n$, we are approximating the above integral over all possible datasets, weighted by their probability.
+
+## Combining many estimates
+
+We have seen how a single experiment gives an estimate $\hat{\mu}$ that varies around the true value. Suppose now that several independent research groups each run their own experiment, each drawing a sample of Gentoo penguins (with replacement from our population). They publish their summaries, and we now want combine their individual estimates into a single, more precise estimate.
+
+Below, six experiments are run simultaneously, each with a different sample size. The "forest plot" shows each experiment's sample mean (filled square, larger squares for larger $n$) with a 95% confidence interval ($\hat{\mu} \pm 1.96 \cdot \text{SE}$, where $\text{SE} = s / \sqrt{n}$). The red diamond shows the simple average of the six sample means; its half-width is $1.96 \cdot \text{SE}(\bar{\hat{\mu}})$, where $\text{SE}(\bar{\hat{\mu}}) = \sqrt{\sum_i \text{SE}_i^2}\, /\, k$ propagates the uncertainty from all $k = 6$ individual experiments. The dashed green line marks the true population mean. Click the button to draw a new set of experiments.
+
+```{ojs}
+//| echo: false
+viewof seed_meta_btn = {
+  const b = Inputs.button("Draw a new set", {value: 123, reduce: (v) => v + 1});
+  b.querySelector("button").style.cssText = "background:#f0f0f0;color:#333;border:1px solid #ccc";
+  return b;
+}
+```
+
+```{r}
+#| echo: false
+plot_forest_meta <- function(population, sample_sizes, seed_val, show_ivw = FALSE) {
+  set.seed(seed_val)
+  n_s <- length(sample_sizes)
+  means <- numeric(n_s)
+  ses <- numeric(n_s)
+  for (i in seq_len(n_s)) {
+    samp <- sample(population, size = sample_sizes[i], replace = TRUE)
+    means[i] <- mean(samp)
+    ses[i] <- sd(samp) / sqrt(sample_sizes[i])
+  }
+  pop_mean <- mean(population)
+  ci_lo <- means - 1.96 * ses
+  ci_hi <- means + 1.96 * ses
+  simple_mean <- mean(means)
+  simple_se <- sqrt(sum(ses^2)) / n_s
+  wts <- 1 / ses^2
+  ivw_mean <- sum(wts * means) / sum(wts)
+  ivw_se <- 1 / sqrt(sum(wts))
+  n_summ <- if (show_ivw) 2 else 1
+  diamond_h <- 0.3
+  y_stud <- rev(seq_len(n_s))
+  ylim <- c(-0.7 - n_summ * 1.3, n_s + 2)
+  xlim <- range(population)
+  par(mar = c(4, 6, 2.5, 1))
+  plot(NA, xlim = xlim, ylim = ylim,
+       yaxt = "n", ylab = "", bty = "l",
+       xlab = "body mass (g)",
+       main = "Forest plot: Gentoo penguin sample means")
+  abline(v = pop_mean, lty = 2, col = "darkgreen", lwd = 2)
+  for (i in seq_len(n_s)) {
+    y <- y_stud[i]
+    segments(ci_lo[i], y, ci_hi[i], y, lwd = 2, col = "grey50")
+    points(means[i], y, pch = 15,
+           cex = 0.7 + log10(sample_sizes[i]) * 0.5,
+           col = "steelblue4")
+  }
+  axis(2, at = y_stud, labels = paste0("n = ", sample_sizes),
+       las = 1, tick = FALSE)
+  abline(h = 0.5, col = "grey60", lwd = 0.8)
+  y_sim <- -0.9
+  dw_sim <- 1.96 * simple_se
+  polygon(
+    c(simple_mean - dw_sim, simple_mean, simple_mean + dw_sim, simple_mean),
+    c(y_sim, y_sim + diamond_h, y_sim, y_sim - diamond_h),
+    col = "firebrick", border = NA
+  )
+  axis(2, at = y_sim, labels = "Simple", las = 1, tick = FALSE,
+       col.axis = "firebrick")
+  if (show_ivw) {
+    y_ivw <- -2.2
+    dw_ivw <- 1.96 * ivw_se
+    polygon(
+      c(ivw_mean - dw_ivw, ivw_mean, ivw_mean + dw_ivw, ivw_mean),
+      c(y_ivw, y_ivw + diamond_h, y_ivw, y_ivw - diamond_h),
+      col = "darkorchid4", border = NA
+    )
+    axis(2, at = y_ivw, labels = "IVW", las = 1, tick = FALSE,
+         col.axis = "darkorchid4")
+  }
+  leg_labels <- c("population mean", "simple mean")
+  leg_col <- c("darkgreen", "firebrick")
+  leg_pch <- c(NA, 15)
+  leg_lty <- c(2, NA)
+  leg_lwd <- c(2, NA)
+  if (show_ivw) {
+    leg_labels <- c(leg_labels, "IVW mean")
+    leg_col <- c(leg_col, "darkorchid4")
+    leg_pch <- c(leg_pch, 15)
+    leg_lty <- c(leg_lty, NA)
+    leg_lwd <- c(leg_lwd, NA)
+  }
+  legend("topright", legend = leg_labels, col = leg_col,
+         pch = leg_pch, lty = leg_lty, lwd = leg_lwd,
+         bty = "n", cex = 0.85, pt.cex = 1.4, y.intersp = 1.5)
+}
+```
+
+```{r}
+#| warning: false
+#| eval: false
+#| input:
+#|   - seed_meta_btn
+sample_sizes_meta <- c(5, 10, 15, 20, 50, 100)
+plot_forest_meta(gentoo_mass, sample_sizes_meta, seed_meta_btn)
+```
+
+::: {.callout-note collapse="false"}
+## Question
+
+Each experiment estimates $\mu$ with a different precision: experiments with larger $n$ have smaller standard errors and their estimates cluster more tightly around the true value. The simple mean above gives equal weight to every experiment regardless of its precision. What would be a better weighting scheme? How should we weight each estimate so that the combined estimate has the smallest possible variance?
+:::
+
+Each experiment $i$ produces a sample mean $\hat{\mu}_i$ with variance $\text{SE}_i^2 = s_i^2 / n_i$, where $s_i$ is the sample standard deviation of experiment $i$'s data. The _inverse variance weighted_ (IVW) estimator assigns weight $w_i = 1 / \text{SE}_i^2$ to each estimate:
+
+$$
+\hat{\mu}_{\text{IVW}} = \frac{\sum_i w_i \,\hat{\mu}_i}{\sum_i w_i}, \qquad w_i = \frac{1}{\text{SE}_i^2}
+$$
+
+This puts more weight on precise estimates (small $\text{SE}$, large $n$) and less weight on imprecise ones. Among all linear combinations of the estimates, IVW minimizes the variance of the combined estimate:
+
+$$
+\text{Var}(\hat{\mu}_{\text{IVW}}) = \frac{1}{\sum_i w_i}
+$$
+
+The data variance is present here, absorbed into the weights. Expanding $w_i = 1/\text{SE}_i^2 = n_i / s_i^2$, the formula becomes $1 / \sum_i (n_i / s_i^2)$. When all experiments share the same population SD $\sigma$ (so each $s_i \approx \sigma$), this reduces to $\sigma^2 / N$ where $N = \sum_i n_i$: the familiar variance of the overall pooled sample mean.
+
+The code below applies IVW to one fixed set of draws, so we can see the weights and combined estimates concretely:
+
+```{r}
+set.seed(5)
+sample_sizes_meta <- c(5, 10, 15, 20, 50, 100)
+meta_df <- do.call(rbind, # collapse into one data.frame
+  lapply(sample_sizes_meta, function(n) {
+    s <- sample(gentoo_mass, size = n, replace = TRUE)
+    data.frame(n = n, mean = mean(s), se = sd(s) / sqrt(n))
+  })
+)
+meta_df$weight <- 1 / meta_df$se^2
+meta_df
+cat("\n")
+cat("IVW estimate:\n")
+sum(meta_df$weight * meta_df$mean) / sum(meta_df$weight)
+```
+
+The plot below adds the IVW combined estimate (purple diamond) alongside the simple mean (red diamond). Notice that the IVW diamond is narrower, reflecting higher precision. Click to draw new experiments and observe how the two combined estimates differ.
+
+```{ojs}
+//| echo: false
+viewof seed_ivw_btn = {
+  const b = Inputs.button("Draw a new set", {value: 123, reduce: (v) => v + 1});
+  b.querySelector("button").style.cssText = "background:#f0f0f0;color:#333;border:1px solid #ccc";
+  return b;
+}
+```
+
+```{r}
+#| warning: false
+#| eval: false
+#| input:
+#|   - seed_ivw_btn
+sample_sizes_meta <- c(5, 10, 15, 20, 50, 100)
+plot_forest_meta(gentoo_mass, sample_sizes_meta, seed_ivw_btn, show_ivw = TRUE)
+```
 
 # Appendix
 

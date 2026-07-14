@@ -54,6 +54,8 @@ Shared YAML conventions:
 
 Do not pad `=` with extra spaces to align arguments across lines (e.g. `data    =`, `mapping =`). Use a single space on each side: `data =`, `mapping =`.
 
+In `legend()` calls for these visualizations, always include `y.intersp = 1.5` to prevent entries from being too bunched up.
+
 ### Prose style
 
 Do not use em dashes (—). Use commas, parentheses, semicolons, colons, or new sentences instead.
