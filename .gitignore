@@ -1,7 +1,7 @@
-/data-comm/_extensions/
-/data-comm/*_files/
-/data-comm/*.html
-/data-comm/tidy-data-exercise.qmd
+/tidy-data/_extensions/
+/tidy-data/*_files/
+/tidy-data/*.html
+/tidy-data/tidy-data-exercise.qmd
 /randomness/_extensions/
 /randomness/*_files/
 /randomness/*.html
