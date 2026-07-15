@@ -184,6 +184,21 @@ With tidy data in hand, *dplyr* provides five key verbs:
 
 These are usually combined with `group_by()` to apply operations within groups.
 
+[pandas](https://pandas.pydata.org/) is the most widely used Python package for tabular data manipulation and provides equivalents for all of these verbs. See the [Python section below](#tidy-data-in-python) for more details and an example of sharing data between R and Python. In the table below, `df` is the pandas DataFrame; method calls are written without the `df.` prefix.
+
+| R (dplyr) | Python (pandas) |
+|---|---|
+| `filter(count > 100)` | `query("count > 100")` |
+| `select(gene, count)` | `[["gene", "count"]]` |
+| `select(starts_with("bill"))` | `filter(regex="^bill", axis=1)` |
+| `select_if(is.numeric)` | `select_dtypes(include="number")` |
+| `mutate(log_count = log(count))` | `assign(log_count=lambda d: np.log(d["count"]))` |
+| `group_by(condition) %>% summarize(total = sum(count))` | `groupby("condition").agg(total=("count", "sum"))` |
+| `arrange(count)` | `sort_values("count")` |
+| `slice_sample(prop = 0.1)` | `sample(frac=0.1)` |
+
+Below we show an example of combining several verbs in a pipeline. The following code chunk can be read as: take `counts_long`, keep only rows where `condition` is not `"control"`, group the remaining rows by `condition`, then compute the total and mean count within each group.
+
 ```{r}
 counts_long |>
   filter(condition != "control") |>
@@ -361,6 +376,35 @@ Some tips for making data both tidy and FAIR are as follows:
   - Finally, a stranger, or a future "you", should be able to re-run everything. Comments, links, software versions (see "Session info" below), can be of great value for future data and analysis re-use. If using randomness as part of analysis (e.g. bootstrapping, sub-sampling, etc.) always set a random seed. For simulations, keep track of the seeds used to generate the multiple simulated datasets.
   - Data should be findable: when depositing data in a repository (Zenodo, Figshare, GEO, etc.), always attach structured metadata describing what the dataset contains, how it was collected, and who produced it. A little effort goes a long way. Ask someone who works in your field if there are additional pieces of information they would find valuable. Where possible, use standard ontologies (e.g. the Gene Ontology, the Cell Ontology, or SNOMED CT for clinical data) to describe variables and sample attributes. Ontology terms are machine-readable identifiers that make metadata computable: other researchers and automated tools can find, filter, and integrate your data without having to interpret free-text descriptions.
 
+## Tidy data in Python
+
+The tidyverse has counterparts in Python. [pandas](https://pandas.pydata.org/) is the most widely used tabular data library and covers all of the dplyr verbs and pivot operations. [polars](https://docs.pola.rs/) is a newer alternative with a Rust backend and a lazy query engine, offering significant speed improvements on large datasets and a chaining syntax closer to dplyr pipelines. [siuba](https://siuba.org/) ports dplyr's verbs directly into Python using the `>>` pipe operator, so `counts_long >> filter(_.count > 100)` reads almost exactly like the R version.
+
+One practical aspect of interoperability is file format. CSV is universal but loses column types. The [parquet](https://parquet.apache.org/) format stores typed columnar data efficiently and is readable by R (via the *arrow* package), Python (via *pandas* or *pyarrow*), and many other tools, making it a good choice when a dataset crosses language boundaries or needs long-term archiving. The following example writes `counts_long` from R, then reads it into Python and reproduces the grouped summary from above.
+
+```r
+library(arrow)
+write_parquet(counts_long, "counts_long.parquet")
+```
+
+```python
+import pandas as pd
+
+counts = pd.read_parquet("counts_long.parquet")
+
+# mirror: counts_long |> filter(condition != "control") |>
+#   group_by(condition) |>
+#   summarize(total = sum(count), mean_count = mean(count))
+(
+    counts
+    .query('condition != "control"')
+    .groupby("condition")
+    .agg(total=("count", "sum"), mean_count=("count", "mean"))
+    .reset_index()
+)
+```
+
+Because parquet preserves column types (`gene` and `condition` remain strings, `count` remains an integer), no manual casting is needed after reading. Parquet also compresses well and can be queried column-selectively without reading the full file, which matters as datasets grow large.
 
 ## Exercise: preserving raw data
 
@@ -605,6 +649,8 @@ The open circles (missing values) are concentrated at high body mass, but the pr
 - **Good data practices make data useful to others** (and to your future self): keep raw data untouched, use machine-readable column names, record units and provenance, set random seeds when necessary, log software versions, and use structured metadata with standard ontologies when depositing data publicly.
 
 - **dplyr and ggplot2 are powerful because of their composability.** Both are built around a small set of simple, well-named operations that chain together cleanly. A `filter()` followed by a `group_by()` and a `summarize()`, or a `geom_point()` followed by a `facet_wrap()`, reads almost like a description of what you want. Complex operations built from simple pieces tend to stay readable even as they grow.
+
+- **The same ideas carry across languages.** pandas in Python provides close equivalents to nearly every dplyr verb, and both benefit from the same underlying conceptual framework: apply composable, single-purpose operations to tidy data. Learning this way of data analytic thinking, and this way of structuring datasets in one language makes it much easier to pick up the other.
 
 - **Missingness is data.** Modeling the probability that a value is missing, and understanding whether that probability depends on observed or unobserved quantities (MAR vs. MNAR), is an important part of any honest analysis.
 
