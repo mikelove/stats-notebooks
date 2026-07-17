@@ -402,7 +402,7 @@ As $P$ collects all of the $\omega$s from $\Omega$ mountain, $P$ notices they al
 
 We need to use Calculus to compute a finite amount from an infinite set of values. On a continuous space, any single exact outcome $\omega$ has probability exactly zero. We can't just add up "probability times value" over uncountably many points the way we would sum over a discrete list, because every term would be zero. This is exactly what the expectation does: when we define the expectation using integration, we have to weight each dataset according to how likely it is to be seen. 
 
-While $P$ methodically collects all datasets from $Omega$, surveying all the possibilities, random datasets are sampled in real life proportional to their probability. 
+While $P$ methodically collects all datasets from $\Omega$, surveying all the possibilities, random datasets are sampled in real life proportional to their probability. 
 
 ```{r}
 #| echo: false

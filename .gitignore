@@ -9,3 +9,6 @@
 .DS_Store
 randomness/data-and-randomness-interactive-brief.md
 *.zip
+*.rds
+*.R
+*.json
