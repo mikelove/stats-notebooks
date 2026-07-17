@@ -6,6 +6,7 @@
 /randomness/*_files/
 /randomness/*.html
 /randomness/randomness-exercise.qmd
+/.claude
 .DS_Store
 randomness/data-and-randomness-interactive-brief.md
 *.zip
